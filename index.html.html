@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Podcast Pro — Multi-Show Production Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============ RESET & BASE ============ */
+*,*::before,*::after{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  background:var(--bg-app);
+  color:var(--text);
+  transition:background .3s ease,color .3s ease;
+}
+img{max-width:100%;display:block;}
+button{font-family:inherit;}
+a{color:var(--accent);}
+:focus-visible{outline:3px solid var(--focus,#ffd54a);outline-offset:2px;border-radius:4px;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+/* ============ THEME TOKENS (defaults = dark) ============ */
+:root{
+  --bg-app:#0a0f1c;
+  --bg-panel:#111a2c;
+  --bg-card:#152036;
+  --bg-card2:#1a2740;
+  --border:rgba(255,255,255,.09);
+  --text:#eaeef7;
+  --text-dim:#9aa7c2;
+  --text-dim2:#6f7d9b;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --accent:#3aa0ff;
+  --accent2:#f5b942;
+  --accent3:#54e0c7;
+  --danger:#ff6b6b;
+  --ok:#57d38c;
+  --focus:#ffd54a;
+  --font-display:'Inter',sans-serif;
+  --corner: 16px;
+}
+body.light{
+  --bg-app:#f3f5fa;
+  --bg-panel:#ffffff;
+  --bg-card:#ffffff;
+  --bg-card2:#f7f9fd;
+  --border:rgba(10,20,40,.10);
+  --text:#141a2b;
+  --text-dim:#4a5570;
+  --text-dim2:#6d7896;
+  --shadow:0 8px 24px rgba(20,30,60,.10);
+}
+
+/* Show themes */
+body[data-show="nsp"]{ --accent:#3aa0ff; --accent2:#f5b942; --accent3:#54e0c7; --show-grad:linear-gradient(135deg,#0a1830 0%,#122544 60%,#1a3a5c 100%); }
+body[data-show="sbu"]{ --accent:#d9a441; --accent2:#3a6ea5; --accent3:#8fb3d9; --show-grad:linear-gradient(135deg,#120c05 0%,#1c1608 45%,#0e1a2c 100%); }
+body[data-show="awl"]{ --accent:#2f8fd6; --accent2:#e3b13e; --accent3:#2fc4b0; --show-grad:linear-gradient(135deg,#071826 0%,#0d2436 55%,#0a3230 100%); }
+body[data-show="tgb"]{ --accent:#ffcc00; --accent2:#ff7a1a; --accent3:#b347ff; --show-grad:linear-gradient(135deg,#120010 0%,#1a0a06 50%,#150019 100%); --font-display:'Baloo 2',cursive; }
+
+/* ============ LAYOUT ============ */
+.app-shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh;}
+.sidebar{
+  background:var(--bg-panel);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:18px 12px;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px;font-family:var(--font-display);}
+.brand .glyph{font-size:28px;}
+.brand .name{font-weight:800;font-size:16px;line-height:1.1;}
+.brand .sub{font-size:11px;color:var(--text-dim);}
+.nav-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;flex:1;}
+.nav-btn{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:none;border:none;color:var(--text-dim);
+  padding:10px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;font-weight:600;
+}
+.nav-btn .ic{font-size:16px;width:20px;text-align:center;}
+.nav-btn:hover{background:var(--bg-card);color:var(--text);}
+.nav-btn[aria-current="page"]{background:linear-gradient(90deg, color-mix(in srgb, var(--accent) 25%, transparent), transparent);color:var(--text);box-shadow:inset 3px 0 0 var(--accent);}
+.sidebar-foot{font-size:11px;color:var(--text-dim2);padding:10px 8px 2px;}
+.nav-sep{margin:12px 8px 4px;font-size:10.5px;font-weight:800;letter-spacing:.08em;color:var(--text-dim2);text-transform:uppercase;}
+a.nav-btn{text-decoration:none;}
+a.nav-btn .arrow{margin-left:auto;font-size:11px;opacity:.65;}
+
+.main{display:flex;flex-direction:column;min-height:100vh;}
+.topbar{
+  display:flex;align-items:center;gap:16px;padding:12px 22px;
+  background:var(--bg-panel);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:20;flex-wrap:wrap;
+}
+.show-switcher{display:flex;gap:8px;flex-wrap:wrap;}
+.show-chip{
+  display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;
+  border:1px solid var(--border);background:var(--bg-card);color:var(--text-dim);
+  cursor:pointer;font-size:12.5px;font-weight:700;
+}
+.show-chip[aria-pressed="true"]{
+  color:#111; background:linear-gradient(90deg, var(--chip-accent,#3aa0ff), var(--chip-accent2,#f5b942)); border-color:transparent;
+}
+.topbar-search{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:999px;padding:8px 14px;}
+.topbar-search input{flex:1;background:none;border:none;color:var(--text);font-size:13px;}
+.topbar-search input:focus{outline:none;}
+.avatar-area{display:flex;align-items:center;gap:10px;}
+.avatar-circle{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#111;}
+.theme-toggle-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:999px;padding:8px 12px;cursor:pointer;font-size:13px;}
+
+.view{display:none;padding:22px;max-width:1400px;width:100%;margin:0 auto;}
+.view.active{display:block;}
+h1.page-title{font-family:var(--font-display);font-size:24px;margin:0 0 4px;}
+.page-sub{color:var(--text-dim);font-size:13.5px;margin:0 0 20px;}
+
+/* Cards & grids */
+.grid{display:grid;gap:16px;}
+.grid.cols-4{grid-template-columns:repeat(4,1fr);}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.grid.cols-2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:1000px){.grid.cols-4{grid-template-columns:repeat(2,1fr);}.grid.cols-3{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:640px){.grid.cols-4,.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}.app-shell{grid-template-columns:1fr;}.sidebar{position:relative;height:auto;}}
+
+.card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--corner,var(--radius));
+  padding:18px;box-shadow:var(--shadow);
+}
+.card h2,.card h3{font-family:var(--font-display);margin-top:0;}
+.stat-card .label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;}
+.stat-card .value{font-size:28px;font-weight:800;margin:6px 0;font-family:var(--font-display);}
+.stat-card .delta{font-size:12px;color:var(--ok);}
+.stat-card{position:relative;}
+.stat-edit-btn{position:absolute;top:12px;right:12px;background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:4px 8px;font-size:11px;cursor:pointer;}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:28px 0 12px;flex-wrap:wrap;gap:10px;}
+.section-head h2{margin:0;font-family:var(--font-display);font-size:18px;}
+
+.btn{
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  color:#111;border:none;border-radius:10px;padding:10px 16px;font-weight:700;font-size:13.5px;cursor:pointer;
+}
+.btn.secondary{background:var(--bg-card2);color:var(--text);border:1px solid var(--border);}
+.btn.danger{background:var(--danger);color:#fff;}
+.btn.small{padding:6px 10px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+
+label{display:block;font-size:12.5px;color:var(--text-dim);margin:10px 0 4px;font-weight:600;}
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=url],input[type=password],select,textarea{
+  width:100%;background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;
+  padding:9px 11px;color:var(--text);font-size:13.5px;font-family:inherit;
+}
+textarea{resize:vertical;min-height:80px;}
+.checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0;}
+.checkbox-row input{width:16px;height:16px;}
+.checkbox-row label{margin:0;font-weight:500;color:var(--text);}
+fieldset{border:1px solid var(--border);border-radius:10px;padding:12px;margin:10px 0;}
+legend{font-size:12px;color:var(--text-dim);padding:0 6px;font-weight:700;}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);}
+th{color:var(--text-dim);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;}
+tr:last-child td{border-bottom:none;}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;}
+.badge.live{background:rgba(87,211,140,.18);color:var(--ok);}
+.badge.scheduled{background:rgba(58,160,255,.18);color:#7cc2ff;}
+.badge.draft{background:rgba(154,167,194,.18);color:var(--text-dim);}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.modal{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:22px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow);}
+.modal h2{margin-top:0;font-family:var(--font-display);}
+.modal-close{float:right;background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg-panel);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;padding:12px 16px;box-shadow:var(--shadow);z-index:200;font-size:13.5px;max-width:320px;}
+
+.show-card{border-radius:var(--corner,var(--radius));padding:18px;background:var(--show-card-grad,var(--bg-card));border:1px solid var(--border);}
+.show-card .glyph{font-size:30px;}
+.pillar-badge{display:inline-flex;align-items:center;gap:5px;background:var(--bg-card2);border:1px solid var(--border);border-radius:999px;padding:5px 10px;font-size:11.5px;margin:3px 4px 0 0;}
+
+.gen-output{background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;padding:14px;white-space:pre-wrap;font-size:13px;line-height:1.55;max-height:520px;overflow-y:auto;}
+.tag{display:inline-block;background:var(--bg-card2);border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:11.5px;margin:2px;cursor:pointer;}
+.tag[aria-pressed="true"]{background:var(--accent);color:#111;border-color:transparent;}
+
+.offline-note{font-size:11.5px;color:var(--text-dim);border:1px dashed var(--border);border-radius:8px;padding:8px 10px;margin-top:10px;}
+
+.rec-timer{font-size:44px;font-weight:800;font-family:var(--font-display);text-align:center;margin:14px 0;}
+.rec-controls{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--danger);display:inline-block;margin-right:6px;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-cell{min-height:84px;background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;padding:6px;font-size:11.5px;position:relative;}
+.cal-cell.other-month{opacity:.35;}
+.cal-cell .daynum{font-weight:700;font-size:12px;}
+.cal-event{margin-top:4px;background:var(--accent);color:#111;border-radius:6px;padding:2px 5px;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-add-btn{position:absolute;bottom:4px;right:4px;background:none;border:1px solid var(--border);border-radius:6px;font-size:10px;color:var(--text-dim);cursor:pointer;padding:1px 5px;}
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;font-size:11px;color:var(--text-dim);font-weight:700;text-align:center;}
+.cal-nav{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:12px;}
+.cal-nav h3{margin:0;min-width:170px;text-align:center;font-family:var(--font-display);}
+
+.chart-wrap{overflow-x:auto;}
+.list-reset{list-style:none;margin:0;padding:0;}
+.file-order-item{display:flex;align-items:center;gap:10px;background:var(--bg-card2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:6px;}
+.file-order-item .grip{cursor:grab;color:var(--text-dim);}
+.file-order-item .fname{flex:1;font-size:13px;}
+.file-order-item.dragging{opacity:.4;}
+.file-order-item[draggable="true"]{cursor:grab;}
+.small-select{padding:4px 6px;font-size:11.5px;width:auto;}
+.progress-bar{height:8px;background:var(--bg-card2);border-radius:999px;overflow:hidden;border:1px solid var(--border);}
+.progress-bar > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+
+canvas.preview-canvas{width:100%;max-width:340px;background:#000;border-radius:10px;border:1px solid var(--border);}
+.two-col{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;}
+@media (max-width:900px){.two-col{grid-template-columns:1fr;}}
+
+.support-warning{background:rgba(255,107,107,.12);border:1px solid var(--danger);color:#ffb3b3;padding:10px 14px;border-radius:10px;font-size:13px;margin:10px 0;}
+.copy-field{display:flex;gap:8px;}
+.copy-field input{flex:1;}
+
+footer.app-footer{text-align:center;color:var(--text-dim2);font-size:11.5px;padding:20px;}
+</style>
+</head>
+<body class="dark" data-show="nsp">
+<div class="app-shell">
+  <nav class="sidebar" aria-label="Primary">
+    <div class="brand">
+      <span class="glyph" id="brandGlyph" aria-hidden="true">🧠</span>
+      <div>
+        <div class="name">Podcast Pro</div>
+        <div class="sub" id="brandSub">Neuro Static Pulse</div>
+      </div>
+    </div>
+    <ul class="nav-list" id="navList" role="list"></ul>
+    <div class="sidebar-foot">Signed in as Robert<br>Local-only data · no cloud sync</div>
+  </nav>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="show-switcher" id="showSwitcher" role="group" aria-label="Switch active show"></div>
+      <div class="topbar-search" role="search">
+        <span aria-hidden="true">🔎</span>
+        <label for="globalSearch" class="sr-only">Search episodes, guests, and content</label>
+        <input type="text" id="globalSearch" placeholder="Search episodes, guests, content…">
+      </div>
+      <button class="theme-toggle-btn" id="quickThemeToggle" type="button">🌙 Dark</button>
+      <div class="avatar-area">
+        <div class="avatar-circle" aria-hidden="true">R</div>
+        <span>Robert</span>
+      </div>
+    </header>
+
+    <main id="viewHost"></main>
+    <footer class="app-footer">Podcast Pro Combined Dashboard · all data stored locally in this browser</footer>
+  </div>
+</div>
+
+<div id="modalHost"></div>
+<div id="toastHost" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= CONSTANTS ================= */
+const LS_KEY = "podcastProCombined";
+
+const SHOWS = [
+  { id:"nsp", name:"Neuro Static Pulse", glyph:"🧠", tagline:"Understand. Empower. Heal.", subline:"Making complex neurology understandable.",
+    pillars:[["🎓","Education"],["💪","Empowerment"],["🌤️","Hope"],["🔬","Science"],["🤝","Community"]],
+    accent:"#3aa0ff", accent2:"#f5b942", grad:"linear-gradient(135deg,#0a1830,#122544 60%,#1a3a5c)" },
+  { id:"sbu", name:"Struggling Brothers United", glyph:"🛡️", tagline:"Together We Stand As One.", subline:"Real Men. Real Talk. Real Transformation. · Est. 2024",
+    pillars:[["🪞","Identity — Know who you are"],["🔓","Freedom — Break what binds you"],["✝️","Faith — Stand firm in the storm"],["🎯","Purpose — Discover why you're here"],["🤝","Brotherhood — Built together. Stronger together."]],
+    accent:"#d9a441", accent2:"#3a6ea5", grad:"linear-gradient(135deg,#120c05,#1c1608 45%,#0e1a2c)" },
+  { id:"awl", name:"Accessibility Without Limits", glyph:"♿", tagline:"Every Voice. Every Story. Every Way.", subline:"Designed for everyone. Built on inclusion.",
+    pillars:[["🎙","Audio Podcast"],["🎬","Video Content"],["💬","Captions Included"],["🤟","ASL Interpretation"],["📄","Transcripts Available"],["🖥️","Screen Reader Friendly"],["🔊","Audio Description"],["🌍","Multiple Languages"]],
+    accent:"#2f8fd6", accent2:"#e3b13e", grad:"linear-gradient(135deg,#071826,#0d2436 55%,#0a3230)" },
+  { id:"tgb", name:"The Goofy Business", glyph:"🐔", tagline:"Causing Nonsense For Everyone", subline:"Expect The Unexpected · Professional Goofballs",
+    pillars:[["🐔","Mascot: Rubber Chicken"],["😂","Comedy"],["🎭","Two Co-Hosts"],["🎉","Chaos, Curated"]],
+    accent:"#ffcc00", accent2:"#ff7a1a", grad:"linear-gradient(135deg,#120010,#1a0a06 50%,#150019)" },
+  { id:"mog", name:"Men of Grace", glyph:"🕊️", tagline:"Grace That Meets You Where You Are.", subline:"Faith, grace, and honest conversation for men. · The Freedom Remnant Studio",
+    pillars:[["🕊️","Grace: undeserved, unearned, freely given"],["📖","Truth: anchored in the Word"],["🔄","Redemption: no past too far gone"],["🤝","Fellowship: walking it out together"],["🌱","Growth: becoming who He made you"]],
+    accent:"#e0a95a", accent2:"#7fae86", grad:"linear-gradient(135deg,#160f08,#20160c 50%,#12180f)",
+    defaultLength:"Standard (25-35 min)", defaultFormat:"2-Person Conversational" }
+];
+function show(id){ return SHOWS.find(s=>s.id===id) || SHOWS[0]; }
+
+const EXTERNAL_TOOLS = [
+  {label:"Script Generator", url:"https://sbu-podcast-script-gen.netlify.app/", ic:"📝"},
+  {label:"Audio Chunk Merger", url:"https://audio-chunk-merger-2e8784merger.netlify.app/", ic:"🔀"},
+  {label:"Prompt Generator", url:"https://sbu-prompt-generator.netlify.app/", ic:"⚡"},
+  {label:"Video Maker", url:"https://sbu-videomaker.netlify.app/", ic:"🎬"}
+];
+
+const NAV = [
+  {id:"dashboard", label:"Dashboard", ic:"🏠"},
+  {id:"ai-studio", label:"AI Studio", ic:"✨"},
+  {id:"recording", label:"Recording", ic:"🎙️"},
+  {id:"episodes", label:"Episodes", ic:"📻"},
+  {id:"analytics", label:"Analytics", ic:"📊"},
+  {id:"monetize", label:"Monetize", ic:"💰"},
+  {id:"content", label:"Blog Generator", ic:"📝"},
+  {id:"community", label:"Community", ic:"💬"},
+  {id:"distribute", label:"Distribute", ic:"📡"},
+  {id:"calendar", label:"Calendar", ic:"📅"},
+  {id:"guests", label:"Guests", ic:"🧑‍🤝‍🧑"},
+  {id:"interview-prep", label:"Interview Prep", ic:"❓"},
+  {id:"video-maker", label:"Video Maker", ic:"🎬"},
+  {id:"audio-merger", label:"Audio Merger", ic:"🔀"},
+  {id:"settings", label:"Settings", ic:"⚙️"}
+];
+
+const FORMATS = ["Solo","Interview","2-Person Conversational","Story","Teaching","Raw Testimony","Q&A","Panel","Comedy Bit","Blog → Script"];
+const LENGTHS = ["Short (10-15 min)","Standard (25-35 min)","Deep Dive (45-60 min)"];
+
+/* ================= STATE ================= */
+let state = null;
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+function defaultState(){
+  const today = new Date();
+  const iso = (d)=> d.toISOString().slice(0,10);
+  const daysAgo = (n)=>{ const d=new Date(today); d.setDate(d.getDate()-n); return iso(d); };
+  const daysAhead = (n)=>{ const d=new Date(today); d.setDate(d.getDate()+n); return iso(d); };
+
+  const episodes = [];
+  const guests = [];
+  const stats = {};
+  const rss = {};
+  SHOWS.forEach((s,i)=>{
+    stats[s.id] = { listeners: [4200,3100,5600,9800,1500][i], episodes: [42,18,27,9,6][i], completion: [78,71,66,58,70][i], revenue: [2150,980,1400,420,300][i] };
+    rss[s.id] = "https://feeds.podcastpro.example/"+s.id+"/rss.xml";
+    episodes.push(
+      {id:uid(), showId:s.id, title:s.name+" — Episode Pilot", status:"live", date:daysAgo(30+i*3), duration:"32:00", notes:"Launch episode introducing the show."},
+      {id:uid(), showId:s.id, title:"Deep Dive #2 for "+s.name, status:"live", date:daysAgo(14+i*2), duration:"41:12", notes:"Second release, strong retention."},
+      {id:uid(), showId:s.id, title:"Upcoming Feature — "+s.name, status:"scheduled", date:daysAhead(5+i), duration:"—", notes:"Scheduled release."},
+      {id:uid(), showId:s.id, title:"Draft Concept for "+s.name, status:"draft", date:daysAhead(20+i), duration:"—", notes:"Still outlining."}
+    );
+    guests.push(
+      {id:uid(), showId:s.id, name:["Dr. Amara Osei","Marcus Webb","Priya Nathan","Chip 'The Chicken' Daly","Pastor Elias Reed"][i], topic:["Neuroplasticity basics","Standing firm together","Inclusive design in media","Improv on the fly","Living in grace daily"][i], bio:"Guest bio placeholder for demo purposes.", status:"confirmed"}
+    );
+  });
+
+  return {
+    version:1,
+    currentShow:"nsp",
+    darkMode:true,
+    defaultShow:"nsp",
+    stats,
+    statsHistory:[],
+    episodes,
+    guests,
+    intakes:[],
+    tiers:[
+      {id:uid(), name:"Supporter", price:5, benefits:"Ad-free episodes, shoutout on socials"},
+      {id:uid(), name:"Inner Circle", price:15, benefits:"Bonus episodes, monthly Q&A, Discord access"},
+      {id:uid(), name:"Founding Partner", price:40, benefits:"Everything above + name in credits + merch"}
+    ],
+    monetize:{ ads:{preroll:true, midroll:true, postroll:false, dynamic:false}, donationLink:"https://donate.example.com/podcastpro", affiliateLink:"https://affiliate.example.com/podcastpro" },
+    community:{
+      comments:[
+        {id:uid(), showId:"nsp", author:"listener_jo", text:"This episode explained my diagnosis better than my neurologist did!"},
+        {id:uid(), showId:"sbu", author:"grounded_guy", text:"Needed this today. Thank you, brothers."},
+        {id:uid(), showId:"awl", author:"accessAdvocate", text:"Love that transcripts are always included."},
+        {id:uid(), showId:"tgb", author:"laughing_out_loud", text:"The rubber chicken bit killed me 😂"}
+      ],
+      polls:[], newsletters:[]
+    },
+    rss,
+    calendar:[],
+    interviewPreps:[],
+    recordings:[],
+    branding:{}, // per-show overrides {accent, accent2, font, corner}
+    seedMarker:true
+  };
+}
+
+function ensureShowData(){
+  if(!state) return;
+  state.stats = state.stats || {};
+  state.rss = state.rss || {};
+  let added = false;
+  SHOWS.forEach(s=>{
+    if(!state.stats[s.id]){ state.stats[s.id] = { listeners:0, episodes:0, completion:0, revenue:0 }; added = true; }
+    if(!state.rss[s.id]){ state.rss[s.id] = "https://feeds.podcastpro.example/"+s.id+"/rss.xml"; added = true; }
+  });
+  if(added) saveState();
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ state = JSON.parse(raw); ensureShowData(); return; }
+  }catch(e){ /* fallthrough */ }
+  state = defaultState();
+  saveState();
+}
+function saveState(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+/* ================= UTIL ================= */
+function $(sel, root){ return (root||document).querySelector(sel); }
+function $all(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+function esc(str){ return String(str==null?"":str).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtNum(n){ return Number(n).toLocaleString(); }
+function fmtMoney(n){ return "$"+Number(n).toLocaleString(undefined,{maximumFractionDigits:2}); }
+
+function $$(sel,root){ return Array.from((root||document).querySelectorAll(sel)); }
+function toast(msg){
+  const host = $("#toastHost");
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg; el.setAttribute("role","status");
+  host.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, 3200);
+}
+
+function openModal(title, bodyHtml, onMount){
+  const host = $("#modalHost");
+  host.innerHTML = '<div class="modal-backdrop" id="modalBackdrop"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">'+
+    '<button class="modal-close" id="modalCloseBtn" aria-label="Close dialog">✕</button>'+
+    '<h2 id="modalTitle">'+esc(title)+'</h2>'+
+    '<div id="modalBody">'+bodyHtml+'</div>'+
+    '</div></div>';
+  $("#modalCloseBtn").addEventListener("click", closeModal);
+  $("#modalBackdrop").addEventListener("click", (e)=>{ if(e.target.id==="modalBackdrop") closeModal(); });
+  document.addEventListener("keydown", modalEscHandler);
+  if(onMount) onMount($("#modalBody"));
+  const firstInput = $("#modalBody input, #modalBody select, #modalBody textarea, #modalBody button");
+  if(firstInput) firstInput.focus();
+}
+function modalEscHandler(e){ if(e.key==="Escape") closeModal(); }
+function closeModal(){
+  $("#modalHost").innerHTML = "";
+  document.removeEventListener("keydown", modalEscHandler);
+}
+
+function copyToClipboard(text){
+  navigator.clipboard && navigator.clipboard.writeText(text).then(()=>toast("Copied to clipboard")).catch(()=>toast("Could not copy — select and copy manually"));
+}
+function downloadText(filename, content, mime){
+  const blob = new Blob([content], {type: mime||"text/plain"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+function applyShowTheme(){
+  document.body.setAttribute("data-show", state.currentShow);
+  document.body.className = (state.darkMode? "":"light");
+  const s = show(state.currentShow);
+  const b = state.branding[state.currentShow] || {};
+  document.documentElement.style.setProperty("--accent", b.accent || s.accent);
+  document.documentElement.style.setProperty("--accent2", b.accent2 || s.accent2);
+  document.documentElement.style.setProperty("--corner", (b.corner||16)+"px");
+  if(b.font==="display") document.documentElement.style.setProperty("--font-display", "'Baloo 2',cursive");
+  else if(b.font) document.documentElement.style.setProperty("--font-display", "'Inter',sans-serif");
+  else document.documentElement.style.removeProperty("--font-display");
+  $("#brandGlyph").textContent = s.glyph;
+  $("#brandSub").textContent = s.name;
+  $("#quickThemeToggle").textContent = state.darkMode ? "🌙 Dark" : "☀️ Light";
+  $all(".show-chip", $("#showSwitcher")).forEach(chip=>{
+    const on = chip.dataset.show===state.currentShow;
+    chip.setAttribute("aria-pressed", on?"true":"false");
+    const sh = show(chip.dataset.show);
+    chip.style.setProperty("--chip-accent", sh.accent);
+    chip.style.setProperty("--chip-accent2", sh.accent2);
+  });
+}
+
+/* ================= NAV / ROUTER ================= */
+let currentView = "dashboard";
+function buildNav(){
+  const list = $("#navList");
+  const internal = NAV.map(n=>'<li><button class="nav-btn" data-view="'+n.id+'" type="button"><span class="ic" aria-hidden="true">'+n.ic+'</span><span>'+n.label+'</span></button></li>').join("");
+  const external = '<li class="nav-sep">My Tools (live apps)</li>'+
+    EXTERNAL_TOOLS.map(t=>'<li><a class="nav-btn ext" href="'+t.url+'" target="_blank" rel="noopener noreferrer"><span class="ic" aria-hidden="true">'+t.ic+'</span><span>'+esc(t.label)+'</span><span class="arrow" aria-hidden="true">↗</span></a></li>').join("");
+  list.innerHTML = internal + external;
+  list.addEventListener("click", (e)=>{
+    if(e.target.closest("a.nav-btn")) return; // external launch link, let it open in a new tab
+    const btn = e.target.closest(".nav-btn");
+    if(!btn || !btn.dataset.view) return;
+    setView(btn.dataset.view);
+  });
+}
+function setView(id){
+  currentView = id;
+  $all(".nav-btn", $("#navList")).forEach(b=> b.setAttribute("aria-current", b.dataset.view===id ? "page":"false"));
+  const host = $("#viewHost");
+  host.innerHTML = '<section class="view active" id="view-'+id+'"></section>';
+  const renderer = VIEW_RENDERERS[id];
+  if(renderer) renderer($("#view-"+id));
+  host.scrollTop = 0;
+  window.scrollTo(0,0);
+}
+
+function buildShowSwitcher(){
+  const el = $("#showSwitcher");
+  el.innerHTML = SHOWS.map(s=>'<button class="show-chip" type="button" data-show="'+s.id+'" aria-pressed="false"><span aria-hidden="true">'+s.glyph+'</span>'+s.name+'</button>').join("");
+  el.addEventListener("click", (e)=>{
+    const chip = e.target.closest(".show-chip");
+    if(!chip) return;
+    state.currentShow = chip.dataset.show;
+    saveState();
+    applyShowTheme();
+    setView(currentView); // re-render scoped to new show
+  });
+}
+
+/* ================= OFFLINE GENERATOR ENGINE ================= */
+function hashStr(str){
+  let h=0; for(let i=0;i<str.length;i++){ h=(h*31 + str.charCodeAt(i))|0; }
+  return Math.abs(h);
+}
+function pick(arr, seed){ return arr[seed % arr.length]; }
+
+function generateEpisodeScript(opts){
+  const s = show(opts.showId);
+  const topic = opts.topic || "this week's big topic";
+  const seed = hashStr(topic+opts.format+s.id);
+  const hooks = [
+    "Ever wonder why "+topic+" feels so hard to pin down? Today we're breaking it wide open.",
+    "Grab a seat, "+topic+" is one of those subjects everyone has an opinion on, but few really understand.",
+    "This one's personal. We're going deep on "+topic+" and not holding anything back."
+  ];
+  const closers = [
+    "That's it for today. Take one small step this week and let it compound.",
+    "Thanks for spending this time with us. If this helped, share it with someone who needs it.",
+    "Until next time, stay curious, stay grounded, and keep showing up."
+  ];
+  let intro = "["+s.name.toUpperCase()+": INTRO]\n"+pick(hooks,seed)+"\nHost welcome + quick show reminder: "+s.tagline;
+  let beats;
+  if(s.id==="nsp"){
+    beats = "1. Define "+topic+" in plain language (no jargon).\n2. Walk through the science, what's happening in the brain or body.\n3. Share a patient-style story or analogy that makes it click.\n4. Address common myths about "+topic+".";
+  } else if(s.id==="sbu"){
+    beats = "1. Open with real talk about "+topic+", no sugar-coating.\n2. Share a testimony or lived-experience story tied to "+topic+".\n3. Unpack what Scripture and brotherhood wisdom say about it.\n4. Call the listener to an honest self-check.";
+  } else if(s.id==="mog"){
+    beats = "1. Open with an honest, grace-centered look at "+topic+", real and never preachy.\n2. Share a story of falling short where grace showed up anyway, tied to "+topic+".\n3. Ground it in Scripture: what does grace say about "+topic+"?\n4. Invite the listener to receive grace here, then extend it to someone else.";
+  } else if(s.id==="awl"){
+    beats = "1. Frame "+topic+" through a disability-and-inclusion lens.\n2. Bring in lived experience or guest perspective.\n3. Cover practical accessibility takeaways related to "+topic+".\n4. Note: this segment ships with captions and transcript.";
+  } else {
+    beats = "1. Cold open bit riffing on "+topic+" (keep it dumb, keep it fun).\n2. Co-hosts riff back and forth, chase every tangent about "+topic+".\n3. A 'Professional Goofball' segment related to "+topic+".\n4. Callback to the rubber chicken at least once.";
+  }
+
+  let main = "[MAIN CONTENT: "+opts.format.toUpperCase()+"]\n";
+  if(opts.format==="2-Person Conversational"){
+    main += "FORMAT: Two hosts in a natural back-and-forth. Label lines HOST 1 and HOST 2.\n\n"+
+      "HOST 1: Open the conversation on "+topic+", set the scene and why it matters.\n"+
+      "HOST 2: React honestly and add a contrasting angle or personal take on "+topic+".\n\n"+
+      "Trade the beats below back and forth, each host building on the other:\n"+beats+"\n\n"+
+      "HOST 1 and HOST 2: Land the point together before moving to the takeaways.";
+  } else if(opts.format==="Blog → Script"){
+    main += "FORMAT: Spoken script adapted from a blog post on "+topic+".\n\n"+
+      "1. Read the blog's hook aloud, then restate it in a natural, conversational way.\n"+
+      "2. Walk each blog section as a spoken beat:\n"+beats+"\n"+
+      "3. Add a 'here's what this looks like in real life' aside the written post didn't have.\n"+
+      "4. Point listeners to the full written version linked in the show notes.";
+  } else {
+    main += beats;
+  }
+  let actionSteps = (s.id==="tgb")
+    ? "[TAKEAWAYS]\n- One (semi) useful thing you learned about "+topic+"\n- One inside joke to bring up with friends\n- Subscribe so you don't miss the next round of nonsense"
+    : "[ACTION STEPS]\n- One concrete step listeners can take this week regarding "+topic+"\n- One reflection question to sit with\n- One resource or next episode to follow up with";
+  let outro = "[OUTRO]\n"+pick(closers,seed)+"\nCTA: Follow "+s.name+" and leave a rating.";
+
+  const outline = "OUTLINE\n- Hook\n- Context on "+topic+"\n- Core content (3-4 beats)\n- Story/example\n- Action steps\n- Outro + CTA";
+  const showNotes = s.name+": "+topic+"\n\nIn this episode we explore "+topic+", covering the key ideas, a real-world story, and practical next steps. Perfect for anyone connected to "+s.name+"'s mission: "+s.tagline;
+  const seoTitle = topic+": What "+s.name+" Listeners Need to Know";
+  const socialCaptions = [
+    "New episode is live 🎧 We're talking "+topic+" on "+s.name+". Link in bio.",
+    topic+", unpacked. New ep of "+s.name+" out now.",
+    "Drop what you're doing. This episode on "+topic+" hits different. #"+s.id.toUpperCase()
+  ].join("\n");
+
+  return { intro, main, actionSteps, outro, outline, showNotes, seoTitle, socialCaptions,
+    full: [intro,main,actionSteps,outro].join("\n\n") };
+}
+
+function generateBlogPost(opts){
+  const s = show(opts.showId);
+  const topic = opts.topic || "a topic worth exploring";
+  const words = opts.wordCount || 500;
+  const paras = Math.max(3, Math.round(words/120));
+  let body = "# "+topic+"\n\n*A "+s.name+" companion post, tone: "+opts.tone+"*\n\n";
+  const bodyLines = [];
+  for(let i=0;i<paras;i++){
+    bodyLines.push("Paragraph "+(i+1)+": Exploring "+topic+" from the lens of "+s.name+", touching on why it matters, what listeners have said, and how it connects to our mission, "+s.tagline+". ("+opts.tone+" tone.)");
+  }
+  body += bodyLines.join("\n\n");
+  if(opts.includeSpecial){
+    if(s.id==="sbu") body += "\n\n> Scripture Reference: \"Iron sharpens iron, so one man sharpens another.\" (Proverbs 27:17)";
+    else if(s.id==="nsp") body += "\n\n> Clinical Note: This content is educational and not a substitute for professional medical advice.";
+    else if(s.id==="awl") body += "\n\n> Accessibility Note: A full transcript and captioned video accompany this post.";
+    else if(s.id==="mog") body += "\n\n> Grace Note: You don't earn your way in. Grace meets you first, then walks you forward.";
+    else body += "\n\n> Goofball Disclaimer: No rubber chickens were harmed in the making of this post.";
+  }
+  if(opts.includeCTA) body += "\n\n**Enjoyed this?** Subscribe to "+s.name+" wherever you get podcasts.";
+  if(opts.includeSEO) body += "\n\n---\nSEO Meta Title: "+topic+" | "+s.name+"\nSEO Meta Description: "+topic+" explained through the lens of "+s.name+", "+s.tagline;
+  return body;
+}
+
+function generateInterviewQuestions(opts){
+  const g = opts.guestName || "the guest";
+  const s = show(opts.showId);
+  const cats = opts.categories && opts.categories.length ? opts.categories : ["Opener","Backstory","Turning Point","Struggles & Lessons","Wisdom","Closer"];
+  const depth = opts.depth || "Standard";
+  const bank = {
+    "Opener":["Welcome "+g+", how would you introduce yourself to our "+s.name+" audience?","What drew you to this conversation about "+(opts.topic||"today's topic")+"?"],
+    "Backstory":["Take us back, where did your journey with "+(opts.topic||"this")+" really begin?","What was life like before this became part of your story?"],
+    "Turning Point":["Was there a specific moment that changed everything for you?","How did you know things needed to shift?"],
+    "Struggles & Lessons":["What was the hardest part of that season?","What do you know now that you wish you knew then?"],
+    "Wisdom":["What would you tell someone facing what you faced?","What's one belief you had to let go of?"],
+    "Closer":["What's next for you, "+g+"?","Where can our "+s.name+" listeners follow your work?"]
+  };
+  let out = "INTERVIEW GUIDE: "+g+(opts.guestTitle? " ("+opts.guestTitle+")":"")+"\nShow: "+s.name+" | Style: "+opts.style+" | Depth: "+depth+"\n\n";
+  cats.forEach(c=>{
+    out += "== "+c.toUpperCase()+" ==\n";
+    (bank[c]||["Tell us more about your experience with "+c.toLowerCase()+"."]).forEach(q=> out += "- "+q+"\n");
+    if(depth==="Deep") out += "- Follow-up: Can you give a specific example?\n";
+    out += "\n";
+  });
+  return out;
+}
+
+/* ================= VIEW: DASHBOARD ================= */
+function renderDashboard(root){
+  const s = show(state.currentShow);
+  const st = state.stats[s.id];
+  root.innerHTML =
+  '<h1 class="page-title">Dashboard</h1>'+
+  '<p class="page-sub">Overview for <strong>'+esc(s.name)+'</strong> — '+esc(s.tagline)+'</p>'+
+  '<div class="grid cols-4" id="statCards"></div>'+
+
+  '<div class="section-head"><h2>✨ AI Quick Generate</h2></div>'+
+  '<div class="card">'+
+    '<form id="quickGenForm">'+
+      '<div class="grid cols-3">'+
+        '<div><label for="qgTopic">Topic</label><input type="text" id="qgTopic" placeholder="e.g. managing chronic stress" required></div>'+
+        '<div><label for="qgLength">Length</label><select id="qgLength">'+LENGTHS.map(l=>'<option'+(s.defaultLength===l?' selected':'')+'>'+l+'</option>').join("")+'</select></div>'+
+        '<div><label for="qgFormat">Format</label><select id="qgFormat">'+FORMATS.map(f=>'<option'+(s.defaultFormat===f?' selected':'')+'>'+f+'</option>').join("")+'</select></div>'+
+      '</div>'+
+      '<div class="btn-row"><button class="btn" type="submit">Generate Episode Script</button></div>'+
+      '<p class="offline-note">No API needed · Fully offline · Unlimited generations — powered by local template logic, not an external AI service.</p>'+
+    '</form>'+
+    '<div id="qgOutput"></div>'+
+  '</div>'+
+
+  '<div class="section-head"><h2>Recent Episodes</h2><button class="btn secondary small" data-goto="episodes" type="button">View all</button></div>'+
+  '<div class="card"><table><thead><tr><th>Title</th><th>Status</th><th>Date</th><th>Duration</th></tr></thead><tbody id="recentEpBody"></tbody></table></div>'+
+
+  '<div class="section-head"><h2>Active Shows</h2></div>'+
+  '<div class="grid cols-4" id="showCards"></div>';
+
+  renderStatCards($("#statCards"), s.id);
+
+  $("#recentEpBody").innerHTML = state.episodes.filter(e=>e.showId===s.id).sort((a,b)=> b.date.localeCompare(a.date)).slice(0,5)
+    .map(e=>'<tr><td>'+esc(e.title)+'</td><td><span class="badge '+e.status+'">'+e.status+'</span></td><td>'+e.date+'</td><td>'+e.duration+'</td></tr>').join("") || '<tr><td colspan="4">No episodes yet.</td></tr>';
+
+  $("#showCards").innerHTML = SHOWS.map(sh=>
+    '<div class="show-card" style="--show-card-grad:'+sh.grad+'"><div class="glyph" aria-hidden="true">'+sh.glyph+'</div>'+
+    '<h3>'+esc(sh.name)+'</h3><p style="color:var(--text-dim);font-size:12.5px;margin:2px 0 8px">'+esc(sh.tagline)+'</p>'+
+    '<div>'+sh.pillars.slice(0,5).map(p=>'<span class="pillar-badge"><span aria-hidden="true">'+p[0]+'</span>'+esc(p[1].split(" — ")[0])+'</span>').join("")+'</div>'+
+    '<div style="margin-top:10px"><button class="btn small" data-switch-show="'+sh.id+'" type="button">Switch to this show</button></div></div>'
+  ).join("");
+
+  root.addEventListener("click", (e)=>{
+    const g = e.target.closest("[data-goto]"); if(g){ setView(g.dataset.goto); return; }
+    const sw = e.target.closest("[data-switch-show]");
+    if(sw){ state.currentShow = sw.dataset.switchShow; saveState(); applyShowTheme(); setView("dashboard"); }
+  });
+
+  $("#quickGenForm").addEventListener("submit", (e)=>{
+    e.preventDefault();
+    const res = generateEpisodeScript({ showId:s.id, topic:$("#qgTopic").value, length:$("#qgLength").value, format:$("#qgFormat").value });
+    $("#qgOutput").innerHTML = '<div class="gen-output" style="margin-top:12px">'+esc(res.full)+'</div><div class="btn-row" style="margin-top:8px"><button class="btn secondary small" id="qgCopy" type="button">Copy</button></div>';
+    $("#qgCopy").addEventListener("click", ()=> copyToClipboard(res.full));
+  });
+}
+
+function renderStatCards(container, showId){
+  const st = state.stats[showId];
+  const defs = [
+    {key:"listeners", label:"Total Listeners", fmt:fmtNum},
+    {key:"episodes", label:"Episodes Published", fmt:fmtNum},
+    {key:"completion", label:"Avg. Completion", fmt:v=>v+"%"},
+    {key:"revenue", label:"Monthly Revenue", fmt:fmtMoney}
+  ];
+  container.innerHTML = defs.map(d=>
+    '<div class="card stat-card"><button class="stat-edit-btn" data-stat="'+d.key+'" type="button" aria-label="Edit '+d.label+'">Edit</button>'+
+    '<div class="label">'+d.label+'</div><div class="value">'+d.fmt(st[d.key])+'</div><div class="delta">Live for '+esc(show(showId).name)+'</div></div>'
+  ).join("");
+  container.addEventListener("click", (e)=>{
+    const btn = e.target.closest("[data-stat]");
+    if(!btn) return;
+    openEditStatModal(showId, btn.dataset.stat, container);
+  });
+}
+
+function openEditStatModal(showId, key, container){
+  const st = state.stats[showId];
+  const labelMap = {listeners:"Total Listeners", episodes:"Episodes Published", completion:"Avg. Completion (%)", revenue:"Monthly Revenue ($)"};
+  openModal("Edit "+labelMap[key],
+    '<label for="statVal">'+labelMap[key]+'</label><input type="number" id="statVal" value="'+st[key]+'">'+
+    '<div class="btn-row" style="margin-top:14px"><button class="btn" id="statSave" type="button">Save</button><button class="btn secondary" id="statCancel" type="button">Cancel</button></div>'+
+    '<h3 style="margin-top:18px;font-size:13px">Recent Edit History</h3><ul class="list-reset" id="statHistList" style="font-size:12px;color:var(--text-dim)"></ul>',
+    (body)=>{
+      const hist = state.statsHistory.filter(h=>h.showId===showId && h.key===key).slice(-5).reverse();
+      $("#statHistList", body).innerHTML = hist.map(h=>'<li>'+h.at+' — changed to '+h.value+'</li>').join("") || '<li>No edits yet.</li>';
+      $("#statSave", body).addEventListener("click", ()=>{
+        const v = Number($("#statVal", body).value);
+        if(isNaN(v)) { toast("Enter a valid number"); return; }
+        state.stats[showId][key] = v;
+        state.statsHistory.push({showId, key, value:v, at:new Date().toLocaleString()});
+        saveState();
+        renderStatCards(container, showId);
+        closeModal();
+        toast("Stat updated");
+      });
+      $("#statCancel", body).addEventListener("click", closeModal);
+    });
+}
+
+/* ================= VIEW: AI STUDIO ================= */
+function renderAIStudio(root){
+  const s = show(state.currentShow);
+  root.innerHTML =
+  '<h1 class="page-title">AI Studio</h1><p class="page-sub">Full offline episode-script generator. Same engine as the Dashboard quick-generate, with richer output options.</p>'+
+  '<div class="two-col">'+
+    '<div class="card">'+
+      '<form id="studioForm">'+
+        '<label for="stTopic">Topic</label><input type="text" id="stTopic" required placeholder="What is this episode about?">'+
+        '<label for="stShow">Show</label><select id="stShow">'+SHOWS.map(sh=>'<option value="'+sh.id+'"'+(sh.id===s.id?" selected":"")+'>'+sh.name+'</option>').join("")+'</select>'+
+        '<div class="grid cols-2">'+
+          '<div><label for="stLength">Length</label><select id="stLength">'+LENGTHS.map(l=>'<option'+(s.defaultLength===l?' selected':'')+'>'+l+'</option>').join("")+'</select></div>'+
+          '<div><label for="stFormat">Format</label><select id="stFormat">'+FORMATS.map(f=>'<option'+(s.defaultFormat===f?' selected':'')+'>'+f+'</option>').join("")+'</select></div>'+
+        '</div>'+
+        '<fieldset><legend>Output includes</legend>'+
+          ['Full Script','Outline','Show Notes','SEO Title','Social Captions'].map((o,i)=>
+            '<div class="checkbox-row"><input type="checkbox" id="out'+i+'" checked data-out="'+o+'"><label for="out'+i+'">'+o+'</label></div>').join("")+
+        '</fieldset>'+
+        '<label for="stVoice">Voice-profile tags (comma separated)</label><input type="text" id="stVoice" placeholder="warm, direct, encouraging">'+
+        '<div class="btn-row" style="margin-top:12px"><button class="btn" type="submit">Generate</button><button class="btn secondary" type="button" id="batchGenBtn">Batch Generate (3 variations)</button></div>'+
+        '<p class="offline-note">No API needed · Fully offline · Unlimited generations.</p>'+
+      '</form>'+
+    '</div>'+
+    '<div class="card"><h3>Output</h3><div id="studioOutput"><p style="color:var(--text-dim);font-size:13px">Generated content will appear here.</p></div></div>'+
+  '</div>';
+
+  function buildOutput(topic, showId, format, length, outs, voice){
+    const res = generateEpisodeScript({showId, topic, format, length});
+    let html = "";
+    if(outs.includes("Full Script")) html += "FULL SCRIPT\n"+res.full+"\n\n";
+    if(outs.includes("Outline")) html += res.outline+"\n\n";
+    if(outs.includes("Show Notes")) html += "SHOW NOTES\n"+res.showNotes+"\n\n";
+    if(outs.includes("SEO Title")) html += "SEO TITLE\n"+res.seoTitle+"\n\n";
+    if(outs.includes("Social Captions")) html += "SOCIAL CAPTIONS\n"+res.socialCaptions+"\n\n";
+    if(voice) html = "Voice profile: "+voice+"\n\n"+html;
+    return html.trim();
+  }
+
+  $("#studioForm").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    const outs = $all("[data-out]", root).filter(c=>c.checked).map(c=>c.dataset.out);
+    const showId = $("#stShow").value;
+    const text = buildOutput($("#stTopic").value, showId, $("#stFormat").value, $("#stLength").value, outs, $("#stVoice").value);
+    $("#studioOutput").innerHTML = '<div class="gen-output">'+esc(text)+'</div><div class="btn-row" style="margin-top:10px"><button class="btn secondary small" id="stCopy" type="button">Copy</button><button class="btn secondary small" id="stDl" type="button">Download .txt</button></div>';
+    $("#stCopy").addEventListener("click", ()=>copyToClipboard(text));
+    $("#stDl").addEventListener("click", ()=>downloadText("episode-script.txt", text));
+  });
+
+  $("#batchGenBtn").addEventListener("click", ()=>{
+    const outs = $all("[data-out]", root).filter(c=>c.checked).map(c=>c.dataset.out);
+    const showId = $("#stShow").value;
+    const baseTopic = $("#stTopic").value || "this week's topic";
+    const variants = [baseTopic+" (Angle A)", baseTopic+" (Angle B)", baseTopic+" (Angle C)"];
+    const html = variants.map((t,i)=> "=== VARIATION "+(i+1)+" ===\n"+buildOutput(t, showId, $("#stFormat").value, $("#stLength").value, outs, $("#stVoice").value)).join("\n\n");
+    $("#studioOutput").innerHTML = '<div class="gen-output">'+esc(html)+'</div><div class="btn-row" style="margin-top:10px"><button class="btn secondary small" id="stDl2" type="button">Download all .txt</button></div>';
+    $("#stDl2").addEventListener("click", ()=>downloadText("batch-episode-scripts.txt", html));
+  });
+}
+
+/* ================= VIEW: RECORDING ================= */
+let recState = { mediaRecorder:null, chunks:[], stream:null, timerInt:null, seconds:0, audioCtx:null, gainNode:null, enhanced:false };
+function renderRecording(root){
+  root.innerHTML =
+  '<h1 class="page-title">Recording</h1><p class="page-sub">Record a take using your microphone. Produces a downloadable audio file.</p>'+
+  '<div class="card" style="max-width:560px;margin:0 auto">'+
+    '<div class="rec-timer" id="recTimer">00:00</div>'+
+    '<div class="rec-controls">'+
+      '<button class="btn" id="recStart" type="button">● Start Recording</button>'+
+      '<button class="btn secondary" id="recPause" type="button" disabled>Pause</button>'+
+      '<button class="btn danger" id="recStop" type="button" disabled>Stop</button>'+
+    '</div>'+
+    '<div id="recStatus" style="text-align:center;margin-top:10px;font-size:13px;color:var(--text-dim)">Idle</div>'+
+    '<fieldset style="margin-top:16px"><legend>AI Enhancement</legend>'+
+      '<div class="checkbox-row"><input type="checkbox" id="markEnhanced"><label for="markEnhanced">Mark take as "enhanced" (label only)</label></div>'+
+      '<div class="checkbox-row"><input type="checkbox" id="applyGain"><label for="applyGain">Apply light gain boost via Web Audio (real, basic processing)</label></div>'+
+    '</fieldset>'+
+    '<div id="recDownload"></div>'+
+  '</div>'+
+  '<div class="section-head"><h2>Saved Takes</h2></div>'+
+  '<div class="card"><table><thead><tr><th>Show</th><th>Label</th><th>Duration</th><th>Recorded</th></tr></thead><tbody id="takesBody"></tbody></table></div>';
+
+  renderTakes();
+
+  function renderTakes(){
+    $("#takesBody").innerHTML = state.recordings.slice().reverse().map(r=>
+      '<tr><td>'+esc(show(r.showId).name)+'</td><td>'+esc(r.label)+'</td><td>'+r.duration+'</td><td>'+r.at+'</td></tr>').join("") || '<tr><td colspan="4">No takes recorded yet.</td></tr>';
+  }
+
+  function fmtTimer(sec){
+    const m = String(Math.floor(sec/60)).padStart(2,"0");
+    const s2 = String(sec%60).padStart(2,"0");
+    return m+":"+s2;
+  }
+
+  $("#recStart").addEventListener("click", async ()=>{
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      $("#recStatus").innerHTML = '<span class="support-warning">Your browser does not support microphone recording (getUserMedia unavailable).</span>';
+      return;
+    }
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      recState.stream = stream;
+      let recordStream = stream;
+      if($("#applyGain").checked){
+        recState.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        const src = recState.audioCtx.createMediaStreamSource(stream);
+        const gain = recState.audioCtx.createGain();
+        gain.gain.value = 1.4;
+        const dest = recState.audioCtx.createMediaStreamDestination();
+        src.connect(gain); gain.connect(dest);
+        recordStream = dest.stream;
+      }
+      recState.chunks = [];
+      recState.mediaRecorder = new MediaRecorder(recordStream);
+      recState.mediaRecorder.ondataavailable = (e)=>{ if(e.data.size>0) recState.chunks.push(e.data); };
+      recState.mediaRecorder.onstop = onRecordingStop;
+      recState.mediaRecorder.start();
+      recState.seconds = 0;
+      $("#recTimer").textContent = fmtTimer(0);
+      recState.timerInt = setInterval(()=>{ recState.seconds++; $("#recTimer").textContent = fmtTimer(recState.seconds); }, 1000);
+      $("#recStatus").innerHTML = '<span class="rec-dot" aria-hidden="true"></span>Recording…';
+      $("#recStart").disabled = true; $("#recPause").disabled = false; $("#recStop").disabled = false;
+      $("#recDownload").innerHTML = "";
+    }catch(err){
+      $("#recStatus").innerHTML = '<span class="support-warning">Microphone access denied or unavailable: '+esc(err.message)+'</span>';
+    }
+  });
+
+  $("#recPause").addEventListener("click", ()=>{
+    const mr = recState.mediaRecorder; if(!mr) return;
+    if(mr.state==="recording"){ mr.pause(); clearInterval(recState.timerInt); $("#recPause").textContent="Resume"; $("#recStatus").textContent="Paused"; }
+    else if(mr.state==="paused"){ mr.resume(); recState.timerInt = setInterval(()=>{ recState.seconds++; $("#recTimer").textContent=fmtTimer(recState.seconds); },1000); $("#recPause").textContent="Pause"; $("#recStatus").innerHTML='<span class="rec-dot" aria-hidden="true"></span>Recording…'; }
+  });
+
+  $("#recStop").addEventListener("click", ()=>{
+    const mr = recState.mediaRecorder; if(!mr) return;
+    mr.stop();
+    if(recState.stream) recState.stream.getTracks().forEach(t=>t.stop());
+    clearInterval(recState.timerInt);
+    $("#recStart").disabled=false; $("#recPause").disabled=true; $("#recStop").disabled=true; $("#recPause").textContent="Pause";
+    $("#recStatus").textContent = "Stopped";
+  });
+
+  function onRecordingStop(){
+    const blob = new Blob(recState.chunks, {type:"audio/webm"});
+    const url = URL.createObjectURL(blob);
+    const enhanced = $("#markEnhanced").checked;
+    const label = (enhanced?"Enhanced Take":"Raw Take")+" — "+fmtTimer(recState.seconds);
+    state.recordings.push({showId: state.currentShow, label, duration: fmtTimer(recState.seconds), at: new Date().toLocaleString()});
+    saveState();
+    renderTakes();
+    $("#recDownload").innerHTML = '<div class="btn-row" style="margin-top:10px"><a class="btn" href="'+url+'" download="take-'+Date.now()+'.webm">Download Recording</a></div>';
+  }
+}
+
+/* ================= VIEW: EPISODES ================= */
+function renderEpisodes(root){
+  const s = show(state.currentShow);
+  root.innerHTML =
+  '<h1 class="page-title">Episodes</h1><p class="page-sub">Manage episodes for '+esc(s.name)+' (or all shows).</p>'+
+  '<div class="btn-row" style="margin-bottom:12px">'+
+    '<select id="epShowFilter"><option value="'+s.id+'">Current show: '+s.name+'</option><option value="all">All shows</option></select>'+
+    '<select id="epStatusFilter"><option value="all">All statuses</option><option value="live">Live</option><option value="scheduled">Scheduled</option><option value="draft">Draft</option></select>'+
+    '<button class="btn" id="addEpBtn" type="button">+ Add Episode</button>'+
+  '</div>'+
+  '<div class="card"><table><thead><tr><th>Title</th><th>Show</th><th>Status</th><th>Date</th><th>Duration</th><th>Actions</th></tr></thead><tbody id="epTableBody"></tbody></table></div>';
+
+  function draw(){
+    const showFilter = $("#epShowFilter").value;
+    const statusFilter = $("#epStatusFilter").value;
+    let list = state.episodes.filter(e=> (showFilter==="all"||e.showId===showFilter) && (statusFilter==="all"||e.status===statusFilter));
+    list.sort((a,b)=>b.date.localeCompare(a.date));
+    $("#epTableBody").innerHTML = list.map(e=>
+      '<tr><td>'+esc(e.title)+'</td><td>'+esc(show(e.showId).name)+'</td><td><span class="badge '+e.status+'">'+e.status+'</span></td><td>'+e.date+'</td><td>'+esc(e.duration)+'</td>'+
+      '<td><button class="btn secondary small" data-edit="'+e.id+'" type="button">Edit</button> <button class="btn danger small" data-del="'+e.id+'" type="button">Delete</button></td></tr>'
+    ).join("") || '<tr><td colspan="6">No episodes match.</td></tr>';
+  }
+  draw();
+  $("#epShowFilter").addEventListener("change", draw);
+  $("#epStatusFilter").addEventListener("change", draw);
+
+  function episodeForm(ep){
+    const isEdit = !!ep;
+    ep = ep || {title:"", showId: state.currentShow, status:"draft", date:new Date().toISOString().slice(0,10), duration:"", notes:""};
+    return '<label for="epTitle">Title</label><input type="text" id="epTitle" value="'+esc(ep.title)+'" required>'+
+      '<label for="epShow">Show</label><select id="epShow">'+SHOWS.map(sh=>'<option value="'+sh.id+'"'+(sh.id===ep.showId?" selected":"")+'>'+sh.name+'</option>').join("")+'</select>'+
+      '<div class="grid cols-2"><div><label for="epStatus">Status</label><select id="epStatus">'+["live","scheduled","draft"].map(st=>'<option'+(st===ep.status?" selected":"")+'>'+st+'</option>').join("")+'</select></div>'+
+      '<div><label for="epDate">Date</label><input type="date" id="epDate" value="'+ep.date+'"></div></div>'+
+      '<label for="epDuration">Duration</label><input type="text" id="epDuration" value="'+esc(ep.duration)+'" placeholder="e.g. 34:00">'+
+      '<label for="epNotes">Notes</label><textarea id="epNotes">'+esc(ep.notes)+'</textarea>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn" id="epSaveBtn" type="button">'+(isEdit?"Save Changes":"Add Episode")+'</button><button class="btn secondary" id="epCancelBtn" type="button">Cancel</button></div>';
+  }
+
+  root.addEventListener("click",(e)=>{
+    if(e.target.id==="addEpBtn"){
+      openModal("Add Episode", episodeForm(null), (body)=>{
+        $("#epSaveBtn",body).addEventListener("click", ()=>{
+          const title = $("#epTitle",body).value.trim(); if(!title){toast("Title required"); return;}
+          state.episodes.push({id:uid(), title, showId:$("#epShow",body).value, status:$("#epStatus",body).value, date:$("#epDate",body).value, duration:$("#epDuration",body).value, notes:$("#epNotes",body).value});
+          saveState(); closeModal(); draw(); toast("Episode added");
+        });
+        $("#epCancelBtn",body).addEventListener("click", closeModal);
+      });
+    }
+    const editId = e.target.closest("[data-edit]");
+    if(editId){
+      const ep = state.episodes.find(x=>x.id===editId.dataset.edit);
+      openModal("Edit Episode", episodeForm(ep), (body)=>{
+        $("#epSaveBtn",body).addEventListener("click", ()=>{
+          Object.assign(ep, {title:$("#epTitle",body).value, showId:$("#epShow",body).value, status:$("#epStatus",body).value, date:$("#epDate",body).value, duration:$("#epDuration",body).value, notes:$("#epNotes",body).value});
+          saveState(); closeModal(); draw(); toast("Episode updated");
+        });
+        $("#epCancelBtn",body).addEventListener("click", closeModal);
+      });
+    }
+    const delId = e.target.closest("[data-del]");
+    if(delId){
+      state.episodes = state.episodes.filter(x=>x.id!==delId.dataset.del);
+      saveState(); draw(); toast("Episode deleted");
+    }
+  });
+}
+
+/* ================= VIEW: ANALYTICS ================= */
+function renderAnalytics(root){
+  const s = show(state.currentShow);
+  const seed = hashStr(s.id);
+  const downloads = Array.from({length:12}, (_,i)=> 200 + ((seed*(i+3))%400) + i*30);
+  const listeners = Array.from({length:12}, (_,i)=> 150 + ((seed*(i+7))%300) + i*22);
+  const retention = Array.from({length:8}, (_,i)=> Math.max(15, 100 - i*10 - ((seed>>i)%8)));
+
+  root.innerHTML =
+  '<h1 class="page-title">Analytics</h1><p class="page-sub">Sample performance data for '+esc(s.name)+'.</p>'+
+  '<div class="grid cols-2">'+
+    '<div class="card"><h3>Monthly Downloads</h3><div class="chart-wrap">'+barChartSVG(downloads,"var(--accent)")+'</div></div>'+
+    '<div class="card"><h3>Monthly Listeners</h3><div class="chart-wrap">'+lineChartSVG(listeners,"var(--accent2)")+'</div></div>'+
+  '</div>'+
+  '<div class="card" style="margin-top:16px"><h3>Episode Retention Curve</h3><div class="chart-wrap">'+lineChartSVG(retention,"var(--accent3)",true)+'</div></div>';
+}
+
+function barChartSVG(data, color){
+  const w=560,h=180,pad=24, max=Math.max(...data,1), bw = (w-pad*2)/data.length*0.7;
+  let bars = data.map((v,i)=>{
+    const x = pad + i*((w-pad*2)/data.length);
+    const bh = (v/max)*(h-pad*2);
+    const y = h-pad-bh;
+    return '<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" fill="'+color+'" rx="3"></rect>';
+  }).join("");
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="180" role="img" aria-label="Bar chart of monthly downloads">'+bars+'<line x1="'+pad+'" y1="'+(h-pad)+'" x2="'+(w-pad)+'" y2="'+(h-pad)+'" stroke="var(--border)"/></svg>';
+}
+function lineChartSVG(data, color, percent){
+  const w=560,h=180,pad=24, max = percent?100:Math.max(...data,1);
+  const pts = data.map((v,i)=>{
+    const x = pad + i*((w-pad*2)/(data.length-1||1));
+    const y = h-pad-(v/max)*(h-pad*2);
+    return x+","+y;
+  }).join(" ");
+  const dots = data.map((v,i)=>{
+    const x = pad + i*((w-pad*2)/(data.length-1||1));
+    const y = h-pad-(v/max)*(h-pad*2);
+    return '<circle cx="'+x+'" cy="'+y+'" r="3" fill="'+color+'"></circle>';
+  }).join("");
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="180" role="img" aria-label="Line chart"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2.5"/>'+dots+'<line x1="'+pad+'" y1="'+(h-pad)+'" x2="'+(w-pad)+'" y2="'+(h-pad)+'" stroke="var(--border)"/></svg>';
+}
+
+/* ================= VIEW: MONETIZE ================= */
+function renderMonetize(root){
+  root.innerHTML =
+  '<h1 class="page-title">Monetize</h1><p class="page-sub">Manage subscription tiers, ad placements, and support links. No real payment processing occurs anywhere in this app.</p>'+
+  '<div class="section-head"><h2>Subscription Tiers</h2><button class="btn small" id="addTierBtn" type="button">+ Add Tier</button></div>'+
+  '<div class="grid cols-3" id="tiersGrid"></div>'+
+  '<div class="section-head"><h2>Ad Placement Settings</h2></div>'+
+  '<div class="card"><fieldset><legend>Cosmetic only — no ad network is connected</legend>'+
+    ["preroll:Pre-roll ad","midroll:Mid-roll ad","postroll:Post-roll ad","dynamic:Dynamic insertion"].map(pair=>{
+      const [k,l] = pair.split(":");
+      return '<div class="checkbox-row"><input type="checkbox" id="ad_'+k+'" data-ad="'+k+'" '+(state.monetize.ads[k]?"checked":"")+'><label for="ad_'+k+'">'+l+'</label></div>';
+    }).join("")+
+  '</fieldset></div>'+
+  '<div class="section-head"><h2>Donation &amp; Affiliate Links</h2></div>'+
+  '<div class="card">'+
+    '<label for="donationLink">Donation Link</label><div class="copy-field"><input type="url" id="donationLink" value="'+esc(state.monetize.donationLink)+'"><button class="btn secondary small" id="copyDonation" type="button">Copy</button></div>'+
+    '<label for="affiliateLink">Affiliate Link</label><div class="copy-field"><input type="url" id="affiliateLink" value="'+esc(state.monetize.affiliateLink)+'"><button class="btn secondary small" id="copyAffiliate" type="button">Copy</button></div>'+
+    '<div class="btn-row" style="margin-top:12px"><button class="btn" id="saveLinksBtn" type="button">Save Links</button></div>'+
+  '</div>';
+
+  function drawTiers(){
+    $("#tiersGrid").innerHTML = state.tiers.map(t=>
+      '<div class="card"><h3>'+esc(t.name)+'</h3><div style="font-size:22px;font-weight:800">$'+t.price+'/mo</div><p style="color:var(--text-dim);font-size:13px">'+esc(t.benefits)+'</p>'+
+      '<div class="btn-row"><button class="btn secondary small" data-edittier="'+t.id+'" type="button">Edit</button><button class="btn danger small" data-deltier="'+t.id+'" type="button">Delete</button></div></div>'
+    ).join("");
+  }
+  drawTiers();
+
+  function tierForm(t){
+    t = t || {name:"",price:5,benefits:""};
+    return '<label for="tName">Name</label><input type="text" id="tName" value="'+esc(t.name)+'">'+
+      '<label for="tPrice">Price ($/mo)</label><input type="number" id="tPrice" value="'+t.price+'">'+
+      '<label for="tBenefits">Benefits</label><textarea id="tBenefits">'+esc(t.benefits)+'</textarea>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn" id="tSave" type="button">Save</button><button class="btn secondary" id="tCancel" type="button">Cancel</button></div>';
+  }
+
+  root.addEventListener("click",(e)=>{
+    if(e.target.id==="addTierBtn"){
+      openModal("Add Tier", tierForm(null), (body)=>{
+        $("#tSave",body).addEventListener("click", ()=>{
+          state.tiers.push({id:uid(), name:$("#tName",body).value, price:Number($("#tPrice",body).value), benefits:$("#tBenefits",body).value});
+          saveState(); closeModal(); drawTiers(); toast("Tier added");
+        });
+        $("#tCancel",body).addEventListener("click", closeModal);
+      });
+    }
+    const editT = e.target.closest("[data-edittier]");
+    if(editT){
+      const t = state.tiers.find(x=>x.id===editT.dataset.edittier);
+      openModal("Edit Tier", tierForm(t), (body)=>{
+        $("#tSave",body).addEventListener("click", ()=>{
+          Object.assign(t, {name:$("#tName",body).value, price:Number($("#tPrice",body).value), benefits:$("#tBenefits",body).value});
+          saveState(); closeModal(); drawTiers(); toast("Tier updated");
+        });
+        $("#tCancel",body).addEventListener("click", closeModal);
+      });
+    }
+    const delT = e.target.closest("[data-deltier]");
+    if(delT){ state.tiers = state.tiers.filter(x=>x.id!==delT.dataset.deltier); saveState(); drawTiers(); }
+    if(e.target.id==="copyDonation") copyToClipboard($("#donationLink").value);
+    if(e.target.id==="copyAffiliate") copyToClipboard($("#affiliateLink").value);
+    if(e.target.id==="saveLinksBtn"){
+      state.monetize.donationLink = $("#donationLink").value;
+      state.monetize.affiliateLink = $("#affiliateLink").value;
+      saveState(); toast("Links saved");
+    }
+  });
+
+  root.addEventListener("change",(e)=>{
+    if(e.target.dataset.ad){ state.monetize.ads[e.target.dataset.ad] = e.target.checked; saveState(); }
+  });
+}
+
+/* ================= VIEW: CONTENT (BLOG) ================= */
+function renderContent(root){
+  const s = show(state.currentShow);
+  const specialLabel = {nsp:"Include Clinical Disclaimer", sbu:"Include Scripture Reference", mog:"Include Scripture Reference", awl:"Include Accessibility Note", tgb:"Include Goofball Disclaimer"}[s.id];
+  root.innerHTML =
+  '<h1 class="page-title">Blog Generator</h1><p class="page-sub">Offline blog-post generator, reused across all shows.</p>'+
+  '<div class="two-col">'+
+    '<div class="card"><form id="blogForm">'+
+      '<label for="bgShow">Show</label><select id="bgShow">'+SHOWS.map(sh=>'<option value="'+sh.id+'"'+(sh.id===s.id?" selected":"")+'>'+sh.name+'</option>').join("")+'</select>'+
+      '<label for="bgTopic">Topic</label><input type="text" id="bgTopic" placeholder="Leave blank to auto-generate ideas">'+
+      '<button class="btn secondary small" type="button" id="ideaBtn" style="margin-top:6px">💡 Suggest topic ideas</button>'+
+      '<div id="ideaList" style="margin-top:8px"></div>'+
+      '<label for="bgTone">Tone</label><select id="bgTone"><option>Warm</option><option>Direct</option><option>Educational</option><option>Playful</option><option>Inspirational</option></select>'+
+      '<label for="bgWords">Target word count</label><input type="number" id="bgWords" value="500">'+
+      '<div class="checkbox-row"><input type="checkbox" id="bgSpecial" checked><label for="bgSpecial">'+specialLabel+'</label></div>'+
+      '<div class="checkbox-row"><input type="checkbox" id="bgCTA" checked><label for="bgCTA">Include CTA</label></div>'+
+      '<div class="checkbox-row"><input type="checkbox" id="bgSEO" checked><label for="bgSEO">Include SEO meta</label></div>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn" type="submit">Generate Blog Post</button></div>'+
+      '<p class="offline-note">No API needed · Fully offline · Unlimited generations.</p>'+
+    '</form></div>'+
+    '<div class="card"><h3>Output</h3><div id="blogOutput"><p style="color:var(--text-dim);font-size:13px">Generated post will appear here.</p></div></div>'+
+  '</div>';
+
+  const ideaBank = {
+    nsp:["Understanding migraines vs. tension headaches","What a seizure actually looks like","How sleep affects your nervous system"],
+    sbu:["Breaking generational cycles","What real brotherhood looks like","Facing shame without hiding"],
+    mog:["Receiving grace when you can't forgive yourself","Grace for the man who keeps failing","What grace is not: cheap excuses vs. real change"],
+    awl:["Designing captions that actually help","ASL interpreters in podcasting","Screen readers 101"],
+    tgb:["The rubber chicken hall of fame","Worst co-host bits ranked","Why we can't finish a serious episode"]
+  };
+  $("#ideaBtn").addEventListener("click", ()=>{
+    const showId = $("#bgShow").value;
+    $("#ideaList").innerHTML = ideaBank[showId].map(t=>'<button type="button" class="tag" data-idea="'+esc(t)+'">'+esc(t)+'</button>').join("");
+  });
+  root.addEventListener("click",(e)=>{
+    const idea = e.target.closest("[data-idea]");
+    if(idea){ $("#bgTopic").value = idea.dataset.idea; }
+  });
+
+  $("#blogForm").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    const showId = $("#bgShow").value;
+    const topic = $("#bgTopic").value || ideaBank[showId][0];
+    const post = generateBlogPost({showId, topic, tone:$("#bgTone").value, wordCount:Number($("#bgWords").value), includeSpecial:$("#bgSpecial").checked, includeCTA:$("#bgCTA").checked, includeSEO:$("#bgSEO").checked});
+    $("#blogOutput").innerHTML = '<div class="gen-output">'+esc(post)+'</div><div class="btn-row" style="margin-top:10px"><button class="btn secondary small" id="blogCopy" type="button">Copy</button><button class="btn secondary small" id="blogDlTxt" type="button">Download .txt</button><button class="btn secondary small" id="blogDlMd" type="button">Download .md</button></div>';
+    $("#blogCopy").addEventListener("click", ()=>copyToClipboard(post));
+    $("#blogDlTxt").addEventListener("click", ()=>downloadText("blog-post.txt", post));
+    $("#blogDlMd").addEventListener("click", ()=>downloadText("blog-post.md", post, "text/markdown"));
+  });
+}
+
+/* ================= VIEW: COMMUNITY ================= */
+function renderCommunity(root){
+  const s = show(state.currentShow);
+  root.innerHTML =
+  '<h1 class="page-title">Community</h1><p class="page-sub">Comments, polls, and newsletter drafts for '+esc(s.name)+'.</p>'+
+  '<div class="section-head"><h2>Recent Comments</h2></div>'+
+  '<div class="card" id="commentsCard"></div>'+
+  '<div class="section-head"><h2>Poll Creator</h2></div>'+
+  '<div class="card"><form id="pollForm">'+
+    '<label for="pollQ">Question</label><input type="text" id="pollQ" required>'+
+    '<label for="pollOpts">Options (one per line)</label><textarea id="pollOpts" placeholder="Option A\nOption B\nOption C" required></textarea>'+
+    '<div class="btn-row" style="margin-top:10px"><button class="btn" type="submit">Create Poll</button></div>'+
+  '</form></div>'+
+  '<div class="grid cols-2" id="pollsGrid" style="margin-top:12px"></div>'+
+  '<div class="section-head"><h2>Newsletter Compose</h2></div>'+
+  '<div class="card"><form id="newsForm">'+
+    '<label for="newsSubject">Subject</label><input type="text" id="newsSubject" required>'+
+    '<label for="newsBody">Body</label><textarea id="newsBody" rows="6" required></textarea>'+
+    '<div class="btn-row" style="margin-top:10px"><button class="btn" type="submit">Save Draft</button></div>'+
+    '<p class="offline-note">Drafts are saved locally only — this app never sends real email.</p>'+
+  '</form><div id="newsDrafts" style="margin-top:12px"></div></div>';
+
+  function drawComments(){
+    const list = state.community.comments.filter(c=>c.showId===s.id);
+    $("#commentsCard").innerHTML = list.map(c=>'<p style="margin:6px 0"><strong>'+esc(c.author)+':</strong> '+esc(c.text)+'</p>').join("") || '<p style="color:var(--text-dim)">No comments yet for this show.</p>';
+  }
+  function drawPolls(){
+    $("#pollsGrid").innerHTML = state.community.polls.filter(p=>p.showId===s.id).map(p=>
+      '<div class="card"><h3>'+esc(p.question)+'</h3><ul class="list-reset">'+p.options.map(o=>'<li style="padding:4px 0;border-bottom:1px solid var(--border)">'+esc(o)+'</li>').join("")+'</ul></div>'
+    ).join("") || "";
+  }
+  function drawDrafts(){
+    $("#newsDrafts").innerHTML = state.community.newsletters.filter(n=>n.showId===s.id).map(n=>
+      '<div class="card" style="margin-bottom:8px"><strong>'+esc(n.subject)+'</strong><p style="font-size:12.5px;color:var(--text-dim);white-space:pre-wrap">'+esc(n.body)+'</p><span class="badge draft">draft</span></div>'
+    ).join("");
+  }
+  drawComments(); drawPolls(); drawDrafts();
+
+  $("#pollForm").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    const opts = $("#pollOpts").value.split("\n").map(o=>o.trim()).filter(Boolean);
+    if(opts.length<2){ toast("Add at least 2 options"); return; }
+    state.community.polls.push({id:uid(), showId:s.id, question:$("#pollQ").value, options:opts});
+    saveState(); drawPolls(); e.target.reset(); toast("Poll created");
+  });
+  $("#newsForm").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    state.community.newsletters.push({id:uid(), showId:s.id, subject:$("#newsSubject").value, body:$("#newsBody").value});
+    saveState(); drawDrafts(); e.target.reset(); toast("Draft saved");
+  });
+}
+
+/* ================= VIEW: DISTRIBUTE ================= */
+function renderDistribute(root){
+  root.innerHTML =
+  '<h1 class="page-title">Distribute</h1><p class="page-sub">Static hosting status (mock) and RSS feed URLs per show.</p>'+
+  '<div class="grid cols-3">'+
+    '<div class="card stat-card"><div class="label">Storage Used</div><div class="value">38.2 GB</div><div class="progress-bar"><div style="width:38%"></div></div></div>'+
+    '<div class="card stat-card"><div class="label">Bandwidth (mo.)</div><div class="value">210 GB</div><div class="progress-bar"><div style="width:62%"></div></div></div>'+
+    '<div class="card stat-card"><div class="label">Uptime</div><div class="value">99.97%</div><div class="delta">Last 90 days</div></div>'+
+  '</div>'+
+  '<div class="section-head"><h2>RSS Feed URLs</h2></div>'+
+  '<div class="card" id="rssCard"></div>';
+
+  $("#rssCard").innerHTML = SHOWS.map(sh=>
+    '<label for="rss_'+sh.id+'">'+esc(sh.name)+'</label><div class="copy-field"><input type="text" id="rss_'+sh.id+'" value="'+esc(state.rss[sh.id])+'"><button class="btn secondary small" data-copyrss="'+sh.id+'" type="button">Copy</button></div>'
+  ).join("");
+
+  $("#rssCard").addEventListener("click",(e)=>{
+    const b = e.target.closest("[data-copyrss]");
+    if(b) copyToClipboard($("#rss_"+b.dataset.copyrss).value);
+  });
+  $("#rssCard").addEventListener("change",(e)=>{
+    if(e.target.id && e.target.id.startsWith("rss_")){
+      const id = e.target.id.replace("rss_","");
+      state.rss[id] = e.target.value; saveState();
+    }
+  });
+}
+
+/* ================= VIEW: CALENDAR ================= */
+let calCursor = new Date();
+function renderCalendar(root){
+  root.innerHTML =
+  '<h1 class="page-title">Calendar</h1><p class="page-sub">Schedule episodes onto a real month grid. Data is saved locally.</p>'+
+  '<div class="cal-nav"><button class="btn secondary small" id="calPrev" type="button" aria-label="Previous month">‹</button><h3 id="calLabel"></h3><button class="btn secondary small" id="calNext" type="button" aria-label="Next month">›</button></div>'+
+  '<div class="cal-head">'+["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>'<div>'+d+'</div>').join("")+'</div>'+
+  '<div class="cal-grid" id="calGrid"></div>';
+
+  function draw(){
+    const y = calCursor.getFullYear(), m = calCursor.getMonth();
+    $("#calLabel").textContent = calCursor.toLocaleDateString(undefined,{month:"long", year:"numeric"});
+    const firstDow = new Date(y,m,1).getDay();
+    const daysInMonth = new Date(y,m+1,0).getDate();
+    const daysInPrev = new Date(y,m,0).getDate();
+    let cells = [];
+    for(let i=firstDow-1;i>=0;i--) cells.push({day:daysInPrev-i, other:true, dateStr:null});
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+      cells.push({day:d, other:false, dateStr});
+    }
+    while(cells.length % 7 !== 0) cells.push({day: cells.length, other:true, dateStr:null});
+    $("#calGrid").innerHTML = cells.map(c=>{
+      if(c.other) return '<div class="cal-cell other-month"><div class="daynum">'+c.day+'</div></div>';
+      const evs = state.calendar.filter(ev=>ev.date===c.dateStr);
+      return '<div class="cal-cell"><div class="daynum">'+c.day+'</div>'+
+        evs.map(ev=>'<div class="cal-event" data-ev="'+ev.id+'" title="'+esc(ev.title)+'">'+esc(ev.title)+'</div>').join("")+
+        '<button class="cal-add-btn" data-adddate="'+c.dateStr+'" type="button" aria-label="Add episode on '+c.dateStr+'">+</button></div>';
+    }).join("");
+  }
+  draw();
+
+  $("#calPrev").addEventListener("click", ()=>{ calCursor.setMonth(calCursor.getMonth()-1); draw(); });
+  $("#calNext").addEventListener("click", ()=>{ calCursor.setMonth(calCursor.getMonth()+1); draw(); });
+
+  function evForm(dateStr, ev){
+    ev = ev || {title:"", showId: state.currentShow, date: dateStr, status:"scheduled"};
+    return '<label for="cfTitle">Episode Title</label><input type="text" id="cfTitle" value="'+esc(ev.title)+'">'+
+      '<label for="cfShow">Show</label><select id="cfShow">'+SHOWS.map(sh=>'<option value="'+sh.id+'"'+(sh.id===ev.showId?" selected":"")+'>'+sh.name+'</option>').join("")+'</select>'+
+      '<label for="cfDate">Date</label><input type="date" id="cfDate" value="'+ev.date+'">'+
+      '<label for="cfStatus">Status</label><select id="cfStatus">'+["scheduled","draft","live"].map(st=>'<option'+(st===ev.status?" selected":"")+'>'+st+'</option>').join("")+'</select>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn" id="cfSave" type="button">Save</button>'+(ev.id?'<button class="btn danger" id="cfDelete" type="button">Delete</button>':'')+'<button class="btn secondary" id="cfCancel" type="button">Cancel</button></div>';
+  }
+
+  $("#calGrid").addEventListener("click",(e)=>{
+    const addBtn = e.target.closest("[data-adddate]");
+    if(addBtn){
+      openModal("Schedule Episode", evForm(addBtn.dataset.adddate, null), (body)=>{
+        $("#cfSave",body).addEventListener("click", ()=>{
+          state.calendar.push({id:uid(), title:$("#cfTitle",body).value, showId:$("#cfShow",body).value, date:$("#cfDate",body).value, status:$("#cfStatus",body).value});
+          saveState(); closeModal(); draw(); toast("Scheduled");
+        });
+        $("#cfCancel",body).addEventListener("click", closeModal);
+      });
+    }
+    const evBtn = e.target.closest("[data-ev]");
+    if(evBtn){
+      const ev = state.calendar.find(x=>x.id===evBtn.dataset.ev);
+      openModal("Edit Scheduled Episode", evForm(ev.date, ev), (body)=>{
+        $("#cfSave",body).addEventListener("click", ()=>{
+          Object.assign(ev, {title:$("#cfTitle",body).value, showId:$("#cfShow",body).value, date:$("#cfDate",body).value, status:$("#cfStatus",body).value});
+          saveState(); closeModal(); draw(); toast("Updated");
+        });
+        const delBtn = $("#cfDelete",body);
+        if(delBtn) delBtn.addEventListener("click", ()=>{
+          state.calendar = state.calendar.filter(x=>x.id!==ev.id);
+          saveState(); closeModal(); draw(); toast("Removed");
+        });
+        $("#cfCancel",body).addEventListener("click", closeModal);
+      });
+    }
+  });
+}
+
+/* ================= VIEW: GUESTS ================= */
+function renderGuests(root){
+  const s = show(state.currentShow);
+  root.innerHTML =
+  '<h1 class="page-title">Guests</h1><p class="page-sub">Manage guest pipeline for '+esc(s.name)+'.</p>'+
+  '<div class="btn-row" style="margin-bottom:12px"><button class="btn" id="addGuestBtn" type="button">+ Add Guest</button></div>'+
+  '<div class="card"><table><thead><tr><th>Name</th><th>Topic</th><th>Status</th><th>Actions</th></tr></thead><tbody id="guestBody"></tbody></table></div>'+
+  '<div class="section-head"><h2>Booking Link</h2></div>'+
+  '<div class="card"><div class="copy-field"><input type="text" id="bookingLink" value="https://book.podcastpro.example/'+s.id+'" readonly><button class="btn secondary small" id="copyBooking" type="button">Copy</button></div></div>'+
+  '<div class="section-head"><h2>Guest Intake Form</h2></div>'+
+  '<div class="card"><form id="intakeForm">'+
+    '<label for="inName">Name</label><input type="text" id="inName" required>'+
+    '<label for="inTopic">Proposed Topic</label><input type="text" id="inTopic" required>'+
+    '<label for="inBio">Short Bio</label><textarea id="inBio"></textarea>'+
+    '<div class="btn-row" style="margin-top:10px"><button class="btn" type="submit">Submit Intake</button></div>'+
+  '</form></div>'+
+  '<div class="section-head"><h2>Submitted Intakes</h2></div>'+
+  '<div class="card" id="intakeList"></div>';
+
+  function drawGuests(){
+    $("#guestBody").innerHTML = state.guests.filter(g=>g.showId===s.id).map(g=>
+      '<tr><td>'+esc(g.name)+'</td><td>'+esc(g.topic)+'</td><td><span class="badge live">'+esc(g.status)+'</span></td>'+
+      '<td><button class="btn secondary small" data-editguest="'+g.id+'" type="button">Edit</button> <button class="btn danger small" data-delguest="'+g.id+'" type="button">Delete</button></td></tr>'
+    ).join("") || '<tr><td colspan="4">No guests yet.</td></tr>';
+  }
+  function drawIntakes(){
+    $("#intakeList").innerHTML = state.intakes.filter(i=>i.showId===s.id).map(i=>
+      '<p style="margin:6px 0"><strong>'+esc(i.name)+'</strong> — '+esc(i.topic)+'<br><span style="color:var(--text-dim);font-size:12px">'+esc(i.bio)+'</span></p>'
+    ).join("") || '<p style="color:var(--text-dim)">No intakes submitted yet.</p>';
+  }
+  drawGuests(); drawIntakes();
+
+  function guestForm(g){
+    g = g || {name:"",topic:"",bio:"",status:"pending"};
+    return '<label for="gName">Name</label><input type="text" id="gName" value="'+esc(g.name)+'">'+
+      '<label for="gTopic">Topic</label><input type="text" id="gTopic" value="'+esc(g.topic)+'">'+
+      '<label for="gBio">Bio</label><textarea id="gBio">'+esc(g.bio)+'</textarea>'+
+      '<label for="gStatus">Status</label><select id="gStatus">'+["pending","confirmed","recorded","declined"].map(st=>'<option'+(st===g.status?" selected":"")+'>'+st+'</option>').join("")+'</select>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn" id="gSave" type="button">Save</button><button class="btn secondary" id="gCancel" type="button">Cancel</button></div>';
+  }
+
+  root.addEventListener("click",(e)=>{
+    if(e.target.id==="addGuestBtn"){
+      openModal("Add Guest", guestForm(null), (body)=>{
+        $("#gSave",body).addEventListener("click", ()=>{
+          state.guests.push({id:uid(), showId:s.id, name:$("#gName",body).value, topic:$("#gTopic",body).value, bio:$("#gBio",body).value, status:$("#gStatus",body).value});
+          saveState(); closeModal(); drawGuests(); toast("Guest added");
+        });
+        $("#gCancel",body).addEventListener("click", closeModal);
+      });
+    }
+    const editG = e.target.closest("[data-editguest]");
+    if(editG){
+      const g = state.guests.find(x=>x.id===editG.dataset.editguest);
+      openModal("Edit Guest", guestForm(g), (body)=>{
+        $("#gSave",body).addEventListener("click", ()=>{
+          Object.assign(g, {name:$("#gName",body).value, topic:$("#gTopic",body).value, bio:$("#gBio",body).value, status:$("#gStatus",body).value});
+          saveState(); closeModal(); drawGuests(); toast("Guest updated");
+        });
+        $("#gCancel",body).addEventListener("click", closeModal);
+      });
+    }
+    const delG = e.target.closest("[data-delguest]");
+    if(delG){ state.guests = state.guests.filter(x=>x.id!==delG.dataset.delguest); saveState(); drawGuests(); }
+    if(e.target.id==="copyBooking") copyToClipboard($("#bookingLink").value);
+  });
+
+  $("#intakeForm").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    state.intakes.push({id:uid(), showId:s.id, name:$("#inName").value, topic:$("#inTopic").value, bio:$("#inBio").value});
+    saveState(); drawIntakes(); e.target.reset(); toast("Intake submitted");
+  });
+}
+
+/* ================= VIEW: INTERVIEW PREP ================= */
+function renderInterviewPrep(root){
+  const s = show(state.currentShow);
+  root.innerHTML =
+  '<h1 class="page-title">Interview Prep</h1><p class="page-sub">Offline question-list generator.</p>'+
+  '<div class="two-col">'+
+    '<div class="card"><form id="ivForm">'+
+      '<label for="ivName">Guest Name</label><input type="text" id="ivName" required>'+
+      '<label for="ivTitle">Guest Title</label><input type="text" id="ivTitle">'+
+      '<label for="ivBio">Guest Bio</label><textarea id="ivBio"></textarea>'+
+      '<label for="ivShow">Show</label><select id="ivShow">'+SHOWS.map(sh=>'<option value="'+sh.id+'"'+(sh.id===s.id?" selected":"")+'>'+sh.name+'</option>').join("")+'</select>'+
+      '<label for="ivTopic">Topic</label><input type="text" id="ivTopic">'+
+      '<div class="grid cols-2"><div><label for="ivStyle">Interview Style</label><select id="ivStyle"><option>Conversational</option><option>Structured</option><option>Rapid-fire</option><option>Story-driven</option></select></div>'+
+      '<div><label for="ivDepth">Question Depth</label><select id="ivDepth"><option>Standard</option><option>Deep</option></select></div></div>'+
+      '<fieldset><legend>Categories</legend>'+
+        ["Opener","Backstory","Turning Point","Struggles & Lessons","Wisdom","Closer"].map((c,i)=>
+          '<div class="checkbox-row"><input type="checkbox" id="cat'+i+'" checked data-cat="'+c+'"><label for="cat'+i+'">'+c+'</label></div>').join("")+
+      '</fieldset>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn" type="submit">Generate Questions</button></div>'+
+    '</form></div>'+
+    '<div class="card"><h3>Output</h3><div id="ivOutput"><p style="color:var(--text-dim);font-size:13px">Question list will appear here.</p></div></div>'+
+  '</div>';
+
+  $("#ivForm").addEventListener("submit",(e)=>{
+    e.preventDefault();
+    const cats = $all("[data-cat]", root).filter(c=>c.checked).map(c=>c.dataset.cat);
+    const out = generateInterviewQuestions({guestName:$("#ivName").value, guestTitle:$("#ivTitle").value, showId:$("#ivShow").value, topic:$("#ivTopic").value, style:$("#ivStyle").value, depth:$("#ivDepth").value, categories:cats});
+    state.interviewPreps.push({id:uid(), showId:$("#ivShow").value, guest:$("#ivName").value, content:out});
+    saveState();
+    $("#ivOutput").innerHTML = '<div class="gen-output">'+esc(out)+'</div><div class="btn-row" style="margin-top:10px"><button class="btn secondary small" id="ivCopy" type="button">Copy</button><button class="btn secondary small" id="ivPrint" type="button">Print</button><button class="btn secondary small" id="ivSave" type="button">Saved ✓</button></div>';
+    $("#ivCopy").addEventListener("click", ()=>copyToClipboard(out));
+    $("#ivPrint").addEventListener("click", ()=>{
+      const w = window.open("", "_blank");
+      w.document.write("<pre>"+esc(out)+"</pre>"); w.document.close(); w.print();
+    });
+  });
+}
+
+/* ================= VIEW: VIDEO MAKER ================= */
+let vmState = { recorder:null, chunks:[], animId:null, audioCtx:null, analyser:null, recording:false };
+function renderVideoMaker(root){
+  const s = show(state.currentShow);
+  const supportOk = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream && (window.AudioContext||window.webkitAudioContext));
+  root.innerHTML =
+  '<h1 class="page-title">Video Maker</h1><p class="page-sub">Turn a song + captions into a branded video, rendered live in your browser. No editing software needed.</p>'+
+  (!supportOk ? '<div class="support-warning">Your browser doesn\'t support one of the features this tool needs (canvas capture / audio recording). Please try the latest Chrome or Edge.</div>' : '')+
+  '<div class="two-col">'+
+    '<div class="card"><form id="vmForm">'+
+      '<label for="vmAudio">Song audio file (required)</label><input type="file" id="vmAudio" accept="audio/*" required>'+
+      '<label for="vmCover">Cover / background image (optional)</label><input type="file" id="vmCover" accept="image/*">'+
+      '<p class="offline-note">Album art or any image — it fills the background behind the visualizer and captions. Skip it to use the show\'s theme gradient.</p>'+
+      '<div class="grid cols-2"><div><label for="vmTitle">Song / segment title</label><input type="text" id="vmTitle" value="New Episode"></div>'+
+      '<div><label for="vmEp">Episode number</label><input type="text" id="vmEp" value="1"></div></div>'+
+      '<div class="grid cols-2"><div><label for="vmShow">Show</label><select id="vmShow">'+SHOWS.map(sh=>'<option value="'+sh.id+'"'+(sh.id===s.id?" selected":"")+'>'+sh.name+'</option>').join("")+'</select></div>'+
+      '<div><label for="vmFormat">Export format</label><select id="vmFormat"><option value="vertical">Vertical 9:16 — Reels / Stories / Shorts (1080×1920)</option><option value="square">Square 1:1 — Feed post (1080×1080)</option></select></div></div>'+
+      '<label for="vmCaptions">Lyrics / captions (one line per caption — spaced evenly across the song)</label><textarea id="vmCaptions" rows="5" placeholder="Line one...\nLine two...\nLine three..."></textarea>'+
+      '<div class="btn-row" style="margin-top:12px">'+
+        '<button class="btn" id="vmGenerate" type="button" '+(supportOk?"":"disabled")+'>Generate Video</button>'+
+        '<button class="btn danger" id="vmStopEarly" type="button" disabled>Stop Early &amp; Save</button>'+
+      '</div>'+
+      '<div id="vmStatus" style="margin-top:8px;font-size:13px;color:var(--text-dim)">Load a song, then click Generate. It plays the whole song in real time to record it — keep this tab open and in the foreground. A download link appears here when it\'s ready.</div>'+
+      '<div id="vmDownload"></div>'+
+    '</form></div>'+
+    '<div class="card"><h3>Live Preview</h3><div style="background:#000;border-radius:10px;overflow:hidden;line-height:0"><canvas id="vmCanvas" class="preview-canvas" width="270" height="480"></canvas></div>'+
+    '<p class="offline-note">Output is a .webm video file (widely supported). Convert to .mp4 in any video tool if a platform needs that specifically.</p></div>'+
+  '</div>';
+
+  const canvas = $("#vmCanvas");
+  let ctx = canvas.getContext("2d");
+
+  $("#vmFormat").addEventListener("change", ()=>{
+    const vertical = $("#vmFormat").value==="vertical";
+    canvas.width = vertical? 270:360; canvas.height = vertical? 480:360;
+  });
+
+  function fmtTime(sec){
+    if(!isFinite(sec) || sec<0) return "--:--";
+    const m = Math.floor(sec/60), sc = Math.floor(sec%60);
+    return m+":"+String(sc).padStart(2,"0");
+  }
+  function roundRect(c,x,y,w,h,r){
+    c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+  }
+  function wrapText(c, text, x, y, maxWidth, lineHeight){
+    const words = text.split(" "); let line=""; const lines=[];
+    words.forEach((w,n)=>{
+      const test = line+w+" ";
+      if(c.measureText(test).width>maxWidth && n>0){ lines.push(line.trim()); line=w+" "; } else line=test;
+    });
+    lines.push(line.trim());
+    const startY = y - ((lines.length-1)*lineHeight)/2;
+    lines.forEach((l,i)=> c.fillText(l, x, startY + i*lineHeight));
+    return lines.length;
+  }
+
+  $("#vmGenerate").addEventListener("click", async ()=>{
+    const fileInput = $("#vmAudio");
+    if(!fileInput.files[0]){ toast("Please choose a song file first."); return; }
+    if(!supportOk){ $("#vmStatus").innerHTML = '<span class="support-warning">Recording not supported in this browser.</span>'; return; }
+
+    $("#vmDownload").innerHTML = "";
+    const vertical = $("#vmFormat").value==="vertical";
+    const W = 1080, H = vertical?1920:1080;
+    canvas.width = vertical?270:360; canvas.height = vertical?480:360;
+    const offscreen = document.createElement("canvas");
+    offscreen.width = W; offscreen.height = H;
+    const octx = offscreen.getContext("2d");
+
+    const audioURL = URL.createObjectURL(fileInput.files[0]);
+    const audioEl = new Audio(); audioEl.src = audioURL; audioEl.crossOrigin = "anonymous";
+
+    let coverImg = null;
+    if($("#vmCover").files[0]){
+      coverImg = new Image();
+      coverImg.src = URL.createObjectURL($("#vmCover").files[0]);
+      await new Promise(res=>{ coverImg.onload = res; coverImg.onerror = res; });
+    }
+
+    const showObj = show($("#vmShow").value);
+    const title = $("#vmTitle").value || "New Episode";
+    const epNum = $("#vmEp").value || "1";
+    const captionLines = $("#vmCaptions").value.split("\n").map(x=>x.trim()).filter(Boolean);
+    const introDuration = 2.2;
+
+    function drawBackground(){
+      if(coverImg){
+        const scale = Math.max(W/coverImg.width, H/coverImg.height);
+        const dw = coverImg.width*scale, dh = coverImg.height*scale;
+        octx.drawImage(coverImg, (W-dw)/2, (H-dh)/2, dw, dh);
+        octx.fillStyle = "rgba(10,14,24,0.55)"; octx.fillRect(0,0,W,H);
+      } else {
+        const g = octx.createLinearGradient(0,0,0,H);
+        g.addColorStop(0, "#0a0f1c"); g.addColorStop(1, showObj.accent);
+        octx.fillStyle = g; octx.fillRect(0,0,W,H);
+      }
+    }
+
+    function drawScene(t, duration, analyser, dataArr){
+      drawBackground();
+      if(t < introDuration){
+        const alpha = t > introDuration-0.5 ? Math.max(0,(introDuration-t)/0.5) : 1;
+        octx.save(); octx.globalAlpha = alpha; octx.textAlign="center";
+        octx.fillStyle = showObj.accent2;
+        octx.font = "bold "+Math.round(W*0.055)+"px sans-serif";
+        octx.fillText(showObj.glyph+" "+showObj.name.toUpperCase(), W/2, H*0.42);
+        octx.fillStyle = "#fff";
+        octx.font = "bold "+Math.round(W*0.075)+"px sans-serif";
+        wrapText(octx, title, W/2, H*0.52, W*0.82, W*0.085);
+        octx.fillStyle = "#c9d2e6";
+        octx.font = Math.round(W*0.035)+"px sans-serif";
+        octx.fillText("Episode "+epNum, W/2, H*0.63);
+        octx.restore();
+        return;
+      }
+      // logo badge
+      const logoW = W*0.17, logoH = W*0.06;
+      octx.fillStyle = showObj.accent2;
+      roundRect(octx, W*0.05, H*0.03, logoW, logoH, 10); octx.fill();
+      octx.fillStyle = "#111"; octx.textAlign="center"; octx.textBaseline="middle";
+      octx.font = "bold "+Math.round(logoH*0.42)+"px sans-serif";
+      octx.fillText(showObj.glyph, W*0.05+logoW/2, H*0.03+logoH/2);
+      octx.textBaseline = "alphabetic";
+      // frequency bars
+      if(analyser && dataArr){
+        analyser.getByteFrequencyData(dataArr);
+        const bandTop = H*0.40, bandH = H*0.20, midY = bandTop+bandH/2;
+        const bars = 48, barW = (W*0.8)/bars, startX = W*0.1;
+        octx.fillStyle = showObj.accent2;
+        for(let i=0;i<bars;i++){
+          const di = Math.floor((i/bars)*dataArr.length);
+          const v = dataArr[di]/255;
+          const barH = Math.max(6, v*bandH);
+          octx.fillRect(startX+i*barW, midY-barH/2, barW*0.6, barH);
+        }
+      }
+      // caption box
+      if(captionLines.length && duration>introDuration && isFinite(duration)){
+        const activeDur = duration-introDuration;
+        const perLine = activeDur/captionLines.length;
+        let idx = Math.floor((t-introDuration)/perLine);
+        idx = Math.min(Math.max(idx,0), captionLines.length-1);
+        const line = captionLines[idx];
+        octx.font = "bold "+Math.round(W*0.05)+"px sans-serif";
+        const boxY = H*0.66; octx.textAlign="center";
+        const metrics = octx.measureText(line);
+        const boxW = Math.min(W*0.86, metrics.width+W*0.08);
+        octx.fillStyle = "rgba(0,0,0,0.35)";
+        roundRect(octx, W/2-boxW/2, boxY-W*0.045, boxW, W*0.09, 14); octx.fill();
+        octx.fillStyle = "#fff";
+        wrapText(octx, line, W/2, boxY, W*0.8, W*0.06);
+      }
+      // lower third
+      const lthY = H*0.80, lthH = H*0.055;
+      octx.fillStyle = "rgba(10,14,24,0.82)"; octx.fillRect(0,lthY,W,lthH);
+      octx.fillStyle = showObj.accent2; octx.fillRect(0,lthY,W*0.01,lthH);
+      octx.textAlign="left"; octx.fillStyle="#fff";
+      octx.font = "bold "+Math.round(W*0.032)+"px sans-serif";
+      octx.fillText(showObj.name, W*0.05, lthY+lthH*0.62);
+      octx.textAlign="right"; octx.fillStyle="#c9d2e6";
+      octx.font = Math.round(W*0.026)+"px sans-serif";
+      octx.fillText("Episode "+epNum, W*0.95, lthY+lthH*0.62);
+    }
+
+    try{
+      vmState.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const src = vmState.audioCtx.createMediaElementSource(audioEl);
+      const analyser = vmState.audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      const dataArr = new Uint8Array(analyser.frequencyBinCount);
+      const dest = vmState.audioCtx.createMediaStreamDestination();
+      src.connect(analyser); src.connect(dest); src.connect(vmState.audioCtx.destination);
+      vmState.analyser = analyser;
+
+      const canvasStream = offscreen.captureStream(30);
+      const combined = new MediaStream([...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+
+      const mimeCandidates = ["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"];
+      const mimeType = mimeCandidates.find(m=> MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || "";
+
+      vmState.chunks = [];
+      vmState.recorder = new MediaRecorder(combined, mimeType ? {mimeType} : undefined);
+      vmState.recorder.ondataavailable = (e)=>{ if(e.data.size>0) vmState.chunks.push(e.data); };
+      vmState.recorder.onerror = (e)=>{
+        $("#vmStatus").innerHTML = '<span class="support-warning">Recording error: '+esc(e.error?e.error.message:String(e))+'</span>';
+        $("#vmGenerate").disabled = false; $("#vmStopEarly").disabled = true;
+      };
+      vmState.recorder.onstop = ()=>{
+        cancelAnimationFrame(vmState.animId);
+        vmState.recording = false;
+        if(vmState.chunks.length===0){
+          $("#vmStatus").innerHTML = '<span class="support-warning">No video data was captured — try again, and keep this tab in the foreground the whole time.</span>';
+          $("#vmGenerate").disabled = false; $("#vmStopEarly").disabled = true;
+          return;
+        }
+        const blob = new Blob(vmState.chunks, {type: mimeType || "video/webm"});
+        const url = URL.createObjectURL(blob);
+        const safeName = (title||"episode").replace(/[^a-z0-9]+/gi,"_").toLowerCase();
+        $("#vmDownload").innerHTML = '<div class="btn-row" style="margin-top:10px"><a class="btn" href="'+url+'" download="'+showObj.id+'-'+safeName+'.webm">Download Video (.webm)</a></div>';
+        $("#vmStatus").textContent = "Done! Click the button above to save your video.";
+        $("#vmGenerate").disabled = false; $("#vmStopEarly").disabled = true;
+      };
+
+      function draw(){
+        if(!vmState.recording) return;
+        const t = audioEl.currentTime, duration = audioEl.duration || 0;
+        drawScene(t, duration, analyser, dataArr);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(offscreen,0,0,canvas.width,canvas.height);
+        $("#vmStatus").innerHTML = '<span class="rec-dot" aria-hidden="true"></span>Recording… '+fmtTime(t)+' / '+fmtTime(duration)+' — keep this tab open and in the foreground.';
+        vmState.animId = requestAnimationFrame(draw);
+      }
+
+      audioEl.currentTime = 0;
+      audioEl.onended = ()=>{ if(vmState.recording){ cancelAnimationFrame(vmState.animId); setTimeout(()=>{ if(vmState.recorder.state!=="inactive") vmState.recorder.stop(); }, 200); } };
+      vmState.recording = true;
+      vmState.recorder.start(1000);
+      draw();
+      $("#vmGenerate").disabled = true; $("#vmStopEarly").disabled = false;
+
+      try{
+        await audioEl.play();
+      }catch(playErr){
+        throw new Error("Your browser blocked auto-play ("+playErr.message+"). Click Generate again — clicking counts as permission to play audio.");
+      }
+
+      $("#vmStopEarly").onclick = ()=>{
+        audioEl.pause();
+        if(vmState.recorder.state!=="inactive") vmState.recorder.stop();
+      };
+    }catch(err){
+      vmState.recording = false;
+      $("#vmStatus").innerHTML = '<span class="support-warning">Something went wrong: '+esc(err.message)+'</span>';
+      $("#vmGenerate").disabled = false; $("#vmStopEarly").disabled = true;
+    }
+  });
+}
+
+/* ================= VIEW: AUDIO MERGER ================= */
+let amFiles = [];
+function renderAudioMerger(root){
+  root.innerHTML =
+  '<h1 class="page-title">Audio Merger</h1><p class="page-sub">Merge any number of audio clips into one WAV file, in your chosen order. Optionally tag clips as Intro/Outro for auto-sort — covers both a simple 3-slot intro/episode/outro merge and an arbitrary N-clip chunk merge.</p>'+
+  '<div class="card">'+
+    '<label for="amInput">Add audio files (drag to reorder after adding, or use the arrows)</label><input type="file" id="amInput" accept="audio/*" multiple>'+
+    '<div class="btn-row" style="margin-top:10px">'+
+      '<button class="btn secondary small" id="amAutoSort" type="button">Auto-sort by filename</button>'+
+      '<button class="btn secondary small" id="amTagSort" type="button">Sort by Intro/Outro tags</button>'+
+      '<button class="btn danger small" id="amClear" type="button">Clear all</button>'+
+    '</div>'+
+    '<ul class="list-reset" id="amList" style="margin-top:14px"></ul>'+
+    '<div class="btn-row" style="margin-top:14px"><button class="btn" id="amMerge" type="button" disabled>Merge &amp; Encode WAV</button></div>'+
+    '<div id="amStatus" style="margin-top:8px;font-size:13px;color:var(--text-dim)"></div>'+
+    '<progress id="amProgress" value="0" max="100" style="display:none;width:100%;margin-top:6px"></progress>'+
+    '<p class="offline-note">Files are merged in the order shown above. Files with differing sample rates/channel counts are resampled to match the first file (linear resampling) before concatenation. Output is a single WAV file you can rename and use as your final episode audio.</p>'+
+    '<div id="amDownload"></div>'+
+  '</div>';
+
+  let dragSrcId = null;
+
+  function drawList(){
+    $("#amList").innerHTML = amFiles.map((f,i)=>
+      '<li class="file-order-item" draggable="true" data-drag-id="'+f.id+'"><span class="grip" aria-hidden="true">⠿</span>'+
+      '<span class="fname">'+(i+1)+'. '+esc(f.file.name)+'</span>'+
+      '<select class="small-select" data-tag="'+f.id+'"><option value=""'+(f.tag===""?" selected":"")+'>No tag</option><option value="intro"'+(f.tag==="intro"?" selected":"")+'>Intro</option><option value="outro"'+(f.tag==="outro"?" selected":"")+'>Outro</option></select>'+
+      '<button class="btn secondary small" data-up="'+f.id+'" type="button" aria-label="Move up">↑</button>'+
+      '<button class="btn secondary small" data-down="'+f.id+'" type="button" aria-label="Move down">↓</button>'+
+      '<button class="btn danger small" data-rm="'+f.id+'" type="button" aria-label="Remove">✕</button></li>'
+    ).join("") || '<li style="color:var(--text-dim)">No files added yet.</li>';
+    $("#amMerge").disabled = amFiles.length < 2;
+
+    $$("#amList [data-drag-id]").forEach(li=>{
+      li.addEventListener("dragstart", ()=>{ dragSrcId = li.dataset.dragId; li.classList.add("dragging"); });
+      li.addEventListener("dragend", ()=> li.classList.remove("dragging"));
+      li.addEventListener("dragover", (e)=> e.preventDefault());
+      li.addEventListener("drop", (e)=>{
+        e.preventDefault();
+        const destId = li.dataset.dragId;
+        if(!dragSrcId || dragSrcId===destId) return;
+        const srcIdx = amFiles.findIndex(f=>f.id===dragSrcId);
+        const destIdx = amFiles.findIndex(f=>f.id===destId);
+        if(srcIdx<0||destIdx<0) return;
+        const [moved] = amFiles.splice(srcIdx,1);
+        amFiles.splice(destIdx,0,moved);
+        dragSrcId = null;
+        drawList();
+      });
+    });
+  }
+
+  $("#amInput").addEventListener("change",(e)=>{
+    Array.from(e.target.files).forEach(f=> amFiles.push({id:uid(), file:f, tag:""}));
+    drawList();
+    e.target.value = "";
+  });
+
+  $("#amAutoSort").addEventListener("click", ()=>{
+    amFiles.sort((a,b)=> a.file.name.localeCompare(b.file.name, undefined, {numeric:true}));
+    drawList();
+  });
+  $("#amTagSort").addEventListener("click", ()=>{
+    const rank = t => t==="intro"?0 : t==="outro"?2 : 1;
+    amFiles.sort((a,b)=> rank(a.tag)-rank(b.tag));
+    drawList();
+  });
+  $("#amClear").addEventListener("click", ()=>{
+    amFiles = []; drawList(); $("#amDownload").innerHTML=""; $("#amStatus").textContent="";
+    $("#amProgress").style.display = "none"; $("#amProgress").value = 0;
+  });
+
+  $("#amList").addEventListener("click",(e)=>{
+    const up = e.target.closest("[data-up]"); const down = e.target.closest("[data-down]"); const rm = e.target.closest("[data-rm]");
+    if(up){ const i = amFiles.findIndex(f=>f.id===up.dataset.up); if(i>0){ [amFiles[i-1],amFiles[i]]=[amFiles[i],amFiles[i-1]]; drawList(); } }
+    if(down){ const i = amFiles.findIndex(f=>f.id===down.dataset.down); if(i<amFiles.length-1){ [amFiles[i+1],amFiles[i]]=[amFiles[i],amFiles[i+1]]; drawList(); } }
+    if(rm){ amFiles = amFiles.filter(f=>f.id!==rm.dataset.rm); drawList(); }
+  });
+  $("#amList").addEventListener("change",(e)=>{
+    if(e.target.dataset.tag){ const f = amFiles.find(x=>x.id===e.target.dataset.tag); if(f) f.tag = e.target.value; }
+  });
+
+  $("#amMerge").addEventListener("click", async ()=>{
+    if(amFiles.length<2){ toast("Add at least 2 files"); return; }
+    $("#amMerge").disabled = true;
+    $("#amProgress").style.display = "block"; $("#amProgress").value = 0;
+    $("#amStatus").textContent = "Reading files…";
+    try{
+      const AC = new (window.AudioContext||window.webkitAudioContext)();
+      const buffers = [];
+      for(let i=0;i<amFiles.length;i++){
+        $("#amStatus").textContent = "Decoding "+(i+1)+" of "+amFiles.length+": "+amFiles[i].file.name;
+        const arr = await amFiles[i].file.arrayBuffer();
+        const buf = await AC.decodeAudioData(arr.slice(0));
+        buffers.push(buf);
+        $("#amProgress").value = Math.round(((i+1)/amFiles.length)*60);
+      }
+      $("#amStatus").textContent = "Merging audio…";
+      const targetRate = buffers[0].sampleRate;
+      const targetChannels = buffers[0].numberOfChannels;
+      const resampled = buffers.map(b=> resampleBuffer(b, targetRate, targetChannels, AC));
+      const totalLen = resampled.reduce((sum,b)=>sum+b.length,0);
+      const outChannels = [];
+      for(let c=0;c<targetChannels;c++){
+        const arr = new Float32Array(totalLen);
+        let offset = 0;
+        resampled.forEach(b=>{ arr.set(b.getChannelData(c), offset); offset += b.length; });
+        outChannels.push(arr);
+      }
+      $("#amProgress").value = 85;
+      $("#amStatus").textContent = "Encoding WAV file…";
+      const wavBlob = encodeWAV(outChannels, targetRate, targetChannels);
+      $("#amProgress").value = 100;
+      const url = URL.createObjectURL(wavBlob);
+      $("#amDownload").innerHTML = '<div class="btn-row" style="margin-top:10px"><a class="btn" href="'+url+'" download="merged-episode.wav">Download Merged WAV</a></div>';
+      $("#amStatus").textContent = "Done. Merged "+amFiles.length+" clips into merged-episode.wav ("+(totalLen/targetRate).toFixed(1)+"s).";
+    }catch(err){
+      $("#amStatus").innerHTML = '<span class="support-warning">Merge failed: '+esc(err.message)+'</span>';
+    }
+    $("#amMerge").disabled = false;
+  });
+
+  drawList();
+}
+
+/* ================= VIEW: SETTINGS ================= */
+function renderSettings(root){
+  const s = show(state.currentShow);
+  root.innerHTML =
+  '<h1 class="page-title">Settings</h1><p class="page-sub">Theme, per-show branding, and defaults.</p>'+
+  '<div class="card">'+
+    '<div class="checkbox-row"><input type="checkbox" id="darkModeToggle" '+(state.darkMode?"checked":"")+'><label for="darkModeToggle">Dark mode (default)</label></div>'+
+    '<label for="defaultShowSel">Default show on load</label><select id="defaultShowSel">'+SHOWS.map(sh=>'<option value="'+sh.id+'"'+(sh.id===state.defaultShow?" selected":"")+'>'+sh.name+'</option>').join("")+'</select>'+
+  '</div>'+
+  '<div class="section-head"><h2>Branding Customizer — '+esc(s.name)+'</h2></div>'+
+  '<div class="two-col">'+
+    '<div class="card">'+
+      '<label for="brAccent">Accent Color 1</label><input type="text" id="brAccent" value="'+ (state.branding[s.id]?.accent || s.accent) +'">'+
+      '<label for="brAccent2">Accent Color 2</label><input type="text" id="brAccent2" value="'+ (state.branding[s.id]?.accent2 || s.accent2) +'">'+
+      '<label for="brFont">Font</label><select id="brFont"><option value="default">Default (Inter)</option><option value="display">Display (Baloo 2)</option></select>'+
+      '<label for="brCorner">Corner Style (px radius)</label><input type="number" id="brCorner" value="'+ (state.branding[s.id]?.corner || 16) +'" min="0" max="32">'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn" id="brApply" type="button">Apply Live Preview</button><button class="btn secondary" id="brSave" type="button">Save Branding</button><button class="btn secondary" id="brReset" type="button">Reset to Show Default</button></div>'+
+    '</div>'+
+    '<div class="card"><h3>Live Preview</h3><div id="brPreview"></div></div>'+
+  '</div>';
+
+  const bf = $("#brFont");
+  bf.value = (state.branding[s.id]?.font) || "default";
+
+  function drawPreview(){
+    const accent = $("#brAccent").value, accent2 = $("#brAccent2").value, corner = $("#brCorner").value, font = bf.value;
+    $("#brPreview").innerHTML =
+      '<div style="border-radius:'+corner+'px;padding:16px;background:linear-gradient(135deg,'+accent+',' +accent2+ ');color:#111;font-family:'+(font==="display"?"'Baloo 2',cursive":"inherit")+'">'+
+      '<div style="font-size:20px;font-weight:800">'+esc(s.glyph)+' '+esc(s.name)+'</div>'+
+      '<div style="font-size:13px;margin-top:4px">Sample Episode Title — "'+esc(s.tagline)+'"</div>'+
+      '</div>';
+  }
+  drawPreview();
+  root.addEventListener("input", (e)=>{ if(["brAccent","brAccent2","brCorner"].includes(e.target.id)) drawPreview(); });
+  bf.addEventListener("change", drawPreview);
+
+  $("#brApply").addEventListener("click", drawPreview);
+  $("#brSave").addEventListener("click", ()=>{
+    state.branding[s.id] = { accent:$("#brAccent").value, accent2:$("#brAccent2").value, font:bf.value, corner:Number($("#brCorner").value) };
+    saveState(); applyShowTheme(); toast("Branding saved for "+s.name);
+  });
+  $("#brReset").addEventListener("click", ()=>{
+    delete state.branding[s.id]; saveState(); applyShowTheme(); setView("settings");
+    toast("Reset to defaults");
+  });
+
+  $("#darkModeToggle").addEventListener("change",(e)=>{ state.darkMode = e.target.checked; saveState(); applyShowTheme(); });
+  $("#defaultShowSel").addEventListener("change",(e)=>{ state.defaultShow = e.target.value; saveState(); toast("Default show saved"); });
+}
+
+/* ================= VIEW REGISTRY ================= */
+const VIEW_RENDERERS = {
+  "dashboard": renderDashboard,
+  "ai-studio": renderAIStudio,
+  "recording": renderRecording,
+  "episodes": renderEpisodes,
+  "analytics": renderAnalytics,
+  "monetize": renderMonetize,
+  "content": renderContent,
+  "community": renderCommunity,
+  "distribute": renderDistribute,
+  "calendar": renderCalendar,
+  "guests": renderGuests,
+  "interview-prep": renderInterviewPrep,
+  "video-maker": renderVideoMaker,
+  "audio-merger": renderAudioMerger,
+  "settings": renderSettings
+};
+
+/* ================= GLOBAL SEARCH ================= */
+function wireGlobalSearch(){
+  $("#globalSearch").addEventListener("keydown",(e)=>{
+    if(e.key!=="Enter") return;
+    const q = e.target.value.trim().toLowerCase();
+    if(!q) return;
+    const epMatch = state.episodes.find(ep=>ep.title.toLowerCase().includes(q));
+    const guestMatch = state.guests.find(g=>g.name.toLowerCase().includes(q));
+    if(epMatch){ state.currentShow = epMatch.showId; saveState(); applyShowTheme(); setView("episodes"); toast('Found episode: "'+epMatch.title+'"'); }
+    else if(guestMatch){ state.currentShow = guestMatch.showId; saveState(); applyShowTheme(); setView("guests"); toast('Found guest: "'+guestMatch.name+'"'); }
+    else toast('No matches for "'+q+'"');
+  });
+}
+
+/* ================= THEME TOGGLE (topbar quick button) ================= */
+function wireThemeToggle(){
+  $("#quickThemeToggle").addEventListener("click", ()=>{
+    state.darkMode = !state.darkMode; saveState(); applyShowTheme();
+  });
+}
+
+/* ================= INIT ================= */
+function init(){
+  loadState();
+  if(state.defaultShow) state.currentShow = state.currentShow || state.defaultShow;
+  buildNav();
+  buildShowSwitcher();
+  applyShowTheme();
+  wireGlobalSearch();
+  wireThemeToggle();
+  setView("dashboard");
+}
+document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>
